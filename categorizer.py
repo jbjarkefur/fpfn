@@ -4,7 +4,7 @@ from copy import deepcopy
 
 from data import Dataset, Image, GroundTruth, Prediction
 from generate_test_data import generate_test_dataset
-from report import report
+from report import report_dimensions
 
 
 def filter_predictions_using_threshold(dataset: Dataset, threshold: float) -> Dataset:
@@ -103,26 +103,28 @@ def match_and_classify(dataset: Dataset, min_iou: float = 0.0) -> Dataset:
 
 
 if __name__ == "__main__":
-    # 2 predictions on 1 ground truth -> 1 TP, 0 FN, 1 FP
-    dataset = Dataset([Image(900, 900, [GroundTruth(50, 60, 150, 160)], [
-                      Prediction(140, 150, 300, 310), Prediction(10, 20, 60, 70)])])
-    dataset_matched_and_classified = match_and_classify(dataset)
-    report(dataset_matched_and_classified)
+    if False:
+        # 2 predictions on 1 ground truth -> 1 TP, 0 FN, 1 FP
+        dataset = Dataset([Image(900, 900, [GroundTruth(50, 60, 150, 160)], [
+                        Prediction(140, 150, 300, 310), Prediction(10, 20, 60, 70)])])
+        dataset_matched_and_classified = match_and_classify(dataset)
+        report(dataset_matched_and_classified)
 
-    # 1 prediction on 2 ground truth -> 2 TP, 0 FN, 0 FP
-    dataset = Dataset([Image(950, 950, [GroundTruth(50, 60, 150, 160), GroundTruth(
-        60, 70, 160, 170)], [Prediction(140, 150, 300, 310)])])
-    dataset_matched_and_classified = match_and_classify(dataset)
-    report(dataset_matched_and_classified)
+        # 1 prediction on 2 ground truth -> 2 TP, 0 FN, 0 FP
+        dataset = Dataset([Image(950, 950, [GroundTruth(50, 60, 150, 160), GroundTruth(
+            60, 70, 160, 170)], [Prediction(140, 150, 300, 310)])])
+        dataset_matched_and_classified = match_and_classify(dataset)
+        report(dataset_matched_and_classified)
 
-    # 1 prediction on 2 ground truth, 1 prediction not overlapping anything, 1 ground truth not detected -> 2 TP, 1 FN, 1 FP
-    dataset = Dataset([Image(1000, 1000, [GroundTruth(50, 60, 150, 160), GroundTruth(60, 70, 160, 170), GroundTruth(
-        10, 20, 100, 110)], [Prediction(140, 150, 300, 310), Prediction(161, 171, 300, 310)])])
-    dataset_matched_and_classified = match_and_classify(dataset)
-    report(dataset_matched_and_classified)
+        # 1 prediction on 2 ground truth, 1 prediction not overlapping anything, 1 ground truth not detected -> 2 TP, 1 FN, 1 FP
+        dataset = Dataset([Image(1000, 1000, [GroundTruth(50, 60, 150, 160), GroundTruth(60, 70, 160, 170), GroundTruth(
+            10, 20, 100, 110)], [Prediction(140, 150, 300, 310), Prediction(161, 171, 300, 310)])])
+        dataset_matched_and_classified = match_and_classify(dataset)
+        report(dataset_matched_and_classified)
 
     # Larger amount of data
     dataset = generate_test_dataset(500)
     dataset_filtered = filter_predictions_using_threshold(dataset, threshold=0.0)
     dataset_matched_and_classified = match_and_classify(dataset_filtered, min_iou=0.0)
-    report(dataset_matched_and_classified, True, 'image.metadata["bodypart"] in ["Knee", "Hand"] and image.metadata["view"] == "PA/AP"')
+    report = report_dimensions(dataset_matched_and_classified, {"bodypart": ["Knee", "Hand", "Foot"]}, 'image.metadata["bodypart"] in ["Knee", "Hand"] and image.metadata["view"] == "PA/AP"')
+    print(report)

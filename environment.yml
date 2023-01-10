@@ -6,3 +6,4 @@ dependencies:
   - numpy
   - fastapi[all]
   - streamlit
+  - streamlit-aggrid
