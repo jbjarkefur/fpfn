@@ -11,7 +11,11 @@ class User_input(BaseModel):
     threshold: float
 
 app = FastAPI()
-dataset = generate_test_dataset(500)
+dataset = generate_test_dataset(100000)
+dataset_filtered = None
+dataset_matched_and_classified = None
+last_input = None
+
 
 @app.post("/describe_metadata")
 def describe_metadata():
@@ -31,8 +35,29 @@ def describe_metadata():
 
 @app.post("/report")
 def create_report(input:User_input):
-    dataset_filtered = filter_predictions_using_threshold(dataset, input.threshold)
-    dataset_matched_and_classified = match_and_classify(dataset_filtered, input.min_iou)
-    result = report(dataset_matched_and_classified, True, input.metadata_boolean_expression)
+    global last_input
+    global dataset
+    global dataset_filtered
+    global dataset_matched_and_classified
+    if last_input is None:
+        print("Status: Recalculate all 1")
+        dataset_filtered = filter_predictions_using_threshold(dataset, input.threshold)
+        dataset_matched_and_classified = match_and_classify(dataset_filtered, input.min_iou)
+        result = report(dataset_matched_and_classified, True, input.metadata_boolean_expression)
+    else:
+        if input.threshold != last_input.threshold:
+            print("Status: Recalculate all 2")
+            dataset_filtered = filter_predictions_using_threshold(dataset, input.threshold)
+            dataset_matched_and_classified = match_and_classify(dataset_filtered, input.min_iou)
+            result = report(dataset_matched_and_classified, True, input.metadata_boolean_expression)
+        elif input.min_iou != last_input.min_iou:
+            print("Status: Recalculate match and report")
+            dataset_matched_and_classified = match_and_classify(dataset_filtered, input.min_iou)
+            result = report(dataset_matched_and_classified, True, input.metadata_boolean_expression)
+        else:
+            print("Status: Recalculate report")
+            result = report(dataset_matched_and_classified, True, input.metadata_boolean_expression)
+
+    last_input = input
 
     return result

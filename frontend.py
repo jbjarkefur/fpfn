@@ -25,7 +25,6 @@ with st.sidebar:
     describe_metadata_data = describe_metadata_result.json()
     metadata_boolean_expression = ""
     for key, values in describe_metadata_data.items():
-        print(values)
         selected_options = st.multiselect(f"{key}", values)
         if len(selected_options) > 0:
             if len(metadata_boolean_expression) > 0:
@@ -37,6 +36,7 @@ with st.sidebar:
     # metadata_boolean_expression = st.text_input("Image metadata boolean expression", "True")
 
     st.header("Presenting")
+    selected_dimension_1 = st.selectbox("Dimension 1", describe_metadata_data.keys())
 
 # Convert inputs to json format
 inputs = {

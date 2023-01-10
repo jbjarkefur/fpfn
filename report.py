@@ -13,11 +13,9 @@ def _images_overview(images: List[Image]):
 
 
 def report(dataset, print_to_terminal=True, metadata_boolean_expression: str = "True"):
-    images_filtered = deepcopy(dataset.images)
 
     # TODO: Implement safer approach than using "eval"
-    print(metadata_boolean_expression)
-    images_filtered = [image for image in images_filtered if eval(metadata_boolean_expression)]
+    # images_filtered = [image for image in dataset.images if eval(metadata_boolean_expression)]
 
     # for key, values in metadata_filters.items():
     #     if isinstance(values, list):
@@ -27,19 +25,21 @@ def report(dataset, print_to_terminal=True, metadata_boolean_expression: str = "
     #         images_filtered = list(
     #             filter(lambda image: image.metadata[key] == values, images_filtered))
 
-    n_tp, n_fn, n_fp = 0, 0, 0
-    for image in images_filtered:
-        n_tp += image.n_tp
-        n_fn += image.n_fn
-        n_fp += image.n_fp
+    n_tp, n_fn, n_fp, n_images_filtered = 0, 0, 0, 0
+    for image in dataset.images:
+        if eval(metadata_boolean_expression):
+            n_images_filtered += 1
+            n_tp += image.n_tp
+            n_fn += image.n_fn
+            n_fp += image.n_fp
 
     tp_rate = n_tp / (n_tp + n_fn)
-    fps_per_image = n_fp / len(images_filtered)
+    fps_per_image = n_fp / n_images_filtered
 
     result = {}
     result["dataset_name"] = dataset.name
     result["n_images"] = len(dataset)
-    result["n_images_filtered"] = len(images_filtered)
+    result["n_images_filtered"] = n_images_filtered
     result["n_tp"] = n_tp
     result["n_fn"] = n_fn
     result["n_fp"] = n_fp

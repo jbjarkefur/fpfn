@@ -37,7 +37,6 @@ def _generate_random_matching_prediction(image_width, image_height, ground_truth
 
 
 def generate_test_dataset(n_images: int = 100) -> Dataset:
-    print("Hello")
     random.seed(42)
 
     images = []
