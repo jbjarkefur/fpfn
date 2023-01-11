@@ -4,7 +4,7 @@ from copy import deepcopy
 
 from data import Dataset, Image, GroundTruth, Prediction
 from generate_test_data import generate_test_dataset
-from report import report_dimensions
+from report import report
 
 
 def filter_predictions_using_threshold(dataset: Dataset, threshold: float) -> Dataset:

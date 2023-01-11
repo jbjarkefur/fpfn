@@ -49,7 +49,7 @@ def generate_test_dataset(n_images: int = 100) -> Dataset:
         # Set some random metadata
         metadata = {}
         metadata["bodypart"] = random.choices(
-            ["Knee", "Hand", "Foot", "Shoulder"], [0.2, 0.1, 0.4, 0.3])[0]
+            ["Knee", "Hand", "Foot", "Shoulder", "Elbow", "Hip", "Forearm"], [0.2, 0.1, 0.2, 0.2, 0.15, 0.1, 0.05])[0]
         metadata["view"] = random.choices(
             ["Lateral", "PA/AP", "Oblique"], [0.2, 0.4, 0.2])[0]
         metadata["machine"] = random.choices(
