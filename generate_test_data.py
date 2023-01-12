@@ -54,6 +54,8 @@ def generate_test_dataset(n_images: int = 100) -> Dataset:
             ["Lateral", "PA/AP", "Oblique"], [0.2, 0.4, 0.2])[0]
         metadata["machine"] = random.choices(
             ["GE", "Fujifilm", "Siemens"], [0.3, 0.2, 0.5])[0]
+        metadata["country"] = random.choices(
+            ["US", "France", "Germany", "UK", "Sweden", "Denmark", "Spain"], [0.25, 0.2, 0.1, 0.2, 0.1, 0.1, 0.05])[0]
         metadata["gender"] = random.choices(
             ["Male", "Female"], [0.3, 0.7])[0]
         metadata["age"] = random.uniform(0, 100)

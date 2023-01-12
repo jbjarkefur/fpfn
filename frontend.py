@@ -26,7 +26,7 @@ with st.sidebar:
         min_iou = st.slider("min_iou", 0.0, 1.0, 0.2)
         threshold = st.slider("threshold", 0.0, 1.0, 0.5)
 
-    st.header("Filtering")
+    st.header("Filters")
     with st.expander("Study filters"):
         st.write("Placeholder")
 
