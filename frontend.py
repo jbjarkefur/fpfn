@@ -7,7 +7,6 @@ import numpy as np
 
 st.set_page_config(layout="wide")
 
-
 if True:
     hide_streamlit_style = """
                 <style>
@@ -15,12 +14,29 @@ if True:
                 footer {visibility: hidden;}
                 </style>
                 """
-    st.markdown(hide_streamlit_style, unsafe_allow_html=True) 
+    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-st.title("FPFN.ai")
+# Remove whitespace from the top of the page and sidebar
+st.markdown("""
+        <style>
+            .css-18e3th9 {
+                padding-top: 0rem;
+                padding-bottom: 10rem;
+                padding-left: 5rem;
+                padding-right: 5rem;
+            }
+            .css-1kyxreq.etr89bj2 {
+                margin-top: -50px;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+
+st.title("Fracture Detection")
 
 # Take user inputs
 with st.sidebar:
+    st.image("img/fpfn_logo_700_crop.png")
+
     st.header("Matching")
     with st.expander("Matching parameters"):
         min_iou = st.slider("min_iou", 0.0, 1.0, 0.2)
