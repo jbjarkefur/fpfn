@@ -54,6 +54,9 @@ def generate_test_dataset(n_images: int = 100) -> Dataset:
             ["Lateral", "PA/AP", "Oblique"], [0.2, 0.4, 0.2])[0]
         metadata["machine"] = random.choices(
             ["GE", "Fujifilm", "Siemens"], [0.3, 0.2, 0.5])[0]
+        metadata["gender"] = random.choices(
+            ["Male", "Female"], [0.3, 0.7])[0]
+        metadata["age"] = random.uniform(0, 100)
         image.metadata = metadata
 
         # Add some random FPs

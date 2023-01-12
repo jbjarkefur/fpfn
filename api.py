@@ -10,9 +10,11 @@ from report import report
 
 class User_input(BaseModel):
     dimension_1_name: str = None
-    dimension_1_values: List[str] = []
+    dimension_1_type: str = None
+    dimension_1_values: List = []
     dimension_2_name: str = None
-    dimension_2_values: List[str] = []
+    dimension_2_type: str = None
+    dimension_2_values: List = []
     metadata_boolean_expression: str
     min_iou: float
     threshold: float
@@ -27,18 +29,30 @@ last_result = None
 
 @app.post("/describe_metadata")
 def describe_metadata():
-    description = {}
+    str_description = {}
+    float_description = {}
     for image in dataset.images:
         for key, value in image.metadata.items():
-            if key in description:
-                if value in description[key]:
-                    description[key][value] += 1
+            if isinstance(value, str):
+                if key in str_description:
+                    if value in str_description[key]:
+                        str_description[key][value] += 1
+                    else:
+                        str_description[key][value] = 0
                 else:
-                    description[key][value] = 0
-            else:
-                description[key] = {}
+                    str_description[key] = {}
+            elif isinstance(value, float):
+                if key in float_description:
+                    if value < float_description[key]["min_value"]:
+                        float_description[key]["min_value"] = value
+                    elif value > float_description[key]["max_value"]:
+                        float_description[key]["max_value"] = value
+                else:
+                    float_description[key] = {}
+                    float_description[key]["min_value"] = value
+                    float_description[key]["max_value"] = value
 
-    return description
+    return {"str": str_description, "float": float_description}
 
 
 @app.post("/report")
@@ -62,7 +76,10 @@ def create_report(input:User_input):
         elif input.min_iou != last_input.min_iou:
             print("Status: Recalculate matching, classification and report")
             recalculate_filtering = False
-        elif input.metadata_boolean_expression != last_input.metadata_boolean_expression or input.dimension_1_name != last_input.dimension_1_name or input.dimension_2_name != last_input.dimension_2_name:
+        elif input.metadata_boolean_expression != last_input.metadata_boolean_expression or \
+            input.dimension_1_name != last_input.dimension_1_name or input.dimension_2_name != last_input.dimension_2_name or \
+            input.dimension_1_type != last_input.dimension_1_type or input.dimension_2_type != last_input.dimension_2_type or \
+            input.dimension_1_values != last_input.dimension_1_values or input.dimension_2_values != last_input.dimension_2_values:
             print("Status: Recalculate report")
             recalculate_filtering = False
             recalculate_matching_and_classification = False
@@ -82,8 +99,8 @@ def create_report(input:User_input):
     if recalculate_report:
         result = report(
             dataset_matched_and_classified,
-            input.dimension_1_name, input.dimension_1_values,
-            input.dimension_2_name, input.dimension_2_values,
+            input.dimension_1_name, input.dimension_1_type, input.dimension_1_values,
+            input.dimension_2_name, input.dimension_2_type, input.dimension_2_values,
             input.metadata_boolean_expression)
         last_result = result
 
