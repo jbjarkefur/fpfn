@@ -1,5 +1,5 @@
 from typing import List
-from data import Dataset, Image, BoundingBox, GroundTruth, Prediction
+from data import StudyDataset, Study, Image, BoundingBox, GroundTruth, Prediction
 import random
 
 
@@ -36,58 +36,67 @@ def _generate_random_matching_prediction(image_width, image_height, ground_truth
     return Prediction(x1, y1, x2, y2, score=score)
 
 
-def generate_test_dataset(n_images: int = 100) -> Dataset:
+def generate_test_dataset(n_studies: int = 100) -> StudyDataset:
     random.seed(42)
 
-    images = []
-    for _ in range(n_images):
-        # Create a new image
-        image_width = random.randint(800, 1600)
-        image_height = random.randint(800, 1600)
-        image = Image(image_width, image_height)
+    studies = []
+    for _ in range(n_studies):
+        # Create a new study
+        study = Study()
 
-        # Set some random metadata
-        metadata = {}
-        metadata["bodypart"] = random.choices(
-            ["Knee", "Hand", "Foot", "Shoulder", "Elbow", "Hip", "Forearm"], [0.2, 0.1, 0.2, 0.2, 0.15, 0.1, 0.05])[0]
-        metadata["view"] = random.choices(
-            ["Lateral", "PA/AP", "Oblique"], [0.2, 0.4, 0.2])[0]
-        metadata["machine"] = random.choices(
-            ["GE", "Fujifilm", "Siemens"], [0.3, 0.2, 0.5])[0]
-        metadata["country"] = random.choices(
+        # Set some random study metadata
+        study.metadata["country"] = random.choices(
             ["US", "France", "Germany", "UK", "Sweden", "Denmark", "Spain"], [0.25, 0.2, 0.1, 0.2, 0.1, 0.1, 0.05])[0]
-        metadata["gender"] = random.choices(
-            ["Male", "Female"], [0.3, 0.7])[0]
-        metadata["age"] = random.uniform(0, 100)
-        image.metadata = metadata
+        study.metadata["gender"] = random.choices(
+            ["Male", "Female"], [0.7, 0.3])[0]
+        study.metadata["age"] = random.uniform(0, 100)
 
-        # Add some random FPs
-        n_fps = random.choices(
-            [0, 1, 2, 3, 4], [0.7, 0.15, 0.1, 0.025, 0.025])[0]
-        for _ in range(n_fps):
-            fp = _generate_random_prediction(image_width, image_height)
-            image.predictions.append(fp)
+        # Add 2-5 images to the study
+        n_images = random.randint(2, 5)
+        for _ in range(n_images):
 
-        # Add ground truth and some matching predictions
-        if random.uniform(0, 1) > 0.5:
-            # This image should have ground truth
-            n_ground_truths = random.randint(1, 5)
-            for _ in range(n_ground_truths):
-                ground_truth = _generate_random_ground_truth(
-                    image_width, image_height)
-                image.ground_truths.append(ground_truth)
+            # Create a new image
+            image_width = random.randint(800, 1600)
+            image_height = random.randint(800, 1600)
+            image = Image(image_width, image_height)
 
-                if random.uniform(0, 1) > 0.2:
-                    prediction = _generate_random_matching_prediction(
-                        image_width, image_height, ground_truth)
-                    image.predictions.append(prediction)
+            # Set some random image metadata
+            image.metadata["bodypart"] = random.choices(
+                ["Knee", "Hand", "Foot", "Shoulder", "Elbow", "Hip", "Forearm"], [0.2, 0.1, 0.2, 0.2, 0.15, 0.1, 0.05])[0]
+            image.metadata["view"] = random.choices(
+                ["Lateral", "PA/AP", "Oblique"], [0.2, 0.4, 0.2])[0]
+            image.metadata["machine"] = random.choices(
+                ["GE", "Fujifilm", "Siemens"], [0.1, 0.1, 0.8])[0]
+            image.metadata["sharpness"] = random.uniform(0, 10)
 
-        images.append(image)
+            # Add some random FPs
+            n_fps = random.choices(
+                [0, 1, 2, 3, 4], [0.7, 0.15, 0.1, 0.025, 0.025])[0]
+            for _ in range(n_fps):
+                fp = _generate_random_prediction(image_width, image_height)
+                image.predictions.append(fp)
 
-    return Dataset(images=images, name="Test dataset")
+            # Add ground truth and some matching predictions
+            if random.uniform(0, 1) > 0.3:
+                # This image should have ground truth
+                n_ground_truths = random.randint(1, 5)
+                for _ in range(n_ground_truths):
+                    ground_truth = _generate_random_ground_truth(
+                        image_width, image_height)
+                    image.ground_truths.append(ground_truth)
+
+                    if random.uniform(0, 1) > 0.2:
+                        prediction = _generate_random_matching_prediction(
+                            image_width, image_height, ground_truth)
+                        image.predictions.append(prediction)
+
+            study.images.append(image)
+        studies.append(study)
+
+    return StudyDataset(studies=studies, name="Test dataset")
 
 
 if __name__ == "__main__":
     # Generate 100 images where around half have ground truth (1-5) and where around 80% of the ground truths have a prediction
-    images = generate_test_dataset()
-    print(images)
+    studies = generate_test_dataset()
+    a = 1

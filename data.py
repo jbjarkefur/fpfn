@@ -1,5 +1,6 @@
-from typing import List, Union
+from typing import List
 from dataclasses import dataclass, field
+from enum import Enum
 
 
 @dataclass
@@ -38,22 +39,11 @@ class Prediction(BoundingBox):
         return cls(x1=bounding_box.x1, y1=bounding_box.y1, x2=bounding_box.x2, y2=bounding_box.y2, score=score)
 
 
-if False:
-    class ListField:
-        type = List
-
-        def __init__(self, name: str, values: List):
-            self.name = name
-            self.values = values
-
-
-    class FloatField:
-        type = float
-
-        def __init__(self, name: str, min_value: float, max_value: float):
-            self.name = name
-            self.min_value = min_value
-            self.max_value = max_value
+class Classification(Enum):
+    TP = 1
+    FN = 2
+    FP = 3
+    TN = 4
 
 
 @dataclass
@@ -66,18 +56,26 @@ class Image():
     n_tp: int = None
     n_fn: int = None
     n_fp: int = None
+    classification: Classification = None
 
     def area(self) -> float:
         return self.width * self.height
 
 
 @dataclass
-class Dataset():
+class Study():
     images: List[Image] = field(default_factory=list)
-    name: str = "Default dataset"
-    n_tp: int = None
-    n_fn: int = None
-    n_fp: int = None
+    metadata: dict = field(default_factory=dict)
+    classification: Classification = None
 
     def __len__(self):
         return len(self.images)
+
+
+@dataclass
+class StudyDataset():
+    studies: List[Study] = field(default_factory=list)
+    name: str = "Fracture Dataset"
+
+    def __len__(self):
+        return len(self.studies)

@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from generate_test_data import generate_test_dataset
 from categorizer import match_and_classify, filter_predictions_using_threshold
+from describe_metadata import describe
 from report import report
 
 class User_input(BaseModel):
@@ -15,12 +16,13 @@ class User_input(BaseModel):
     dimension_2_name: str = None
     dimension_2_type: str = None
     dimension_2_values: List = []
-    metadata_boolean_expression: str
+    study_boolean_expression: str = "True"
+    image_boolean_expression: str = "True"
     min_iou: float
     threshold: float
 
 app = FastAPI()
-dataset = generate_test_dataset(25000)
+dataset = generate_test_dataset(20000)
 dataset_filtered = None
 dataset_matched_and_classified = None
 last_input = None
@@ -29,30 +31,8 @@ last_result = None
 
 @app.post("/describe_metadata")
 def describe_metadata():
-    str_description = {}
-    float_description = {}
-    for image in dataset.images:
-        for key, value in image.metadata.items():
-            if isinstance(value, str):
-                if key in str_description:
-                    if value in str_description[key]:
-                        str_description[key][value] += 1
-                    else:
-                        str_description[key][value] = 0
-                else:
-                    str_description[key] = {}
-            elif isinstance(value, float):
-                if key in float_description:
-                    if value < float_description[key]["min_value"]:
-                        float_description[key]["min_value"] = value
-                    elif value > float_description[key]["max_value"]:
-                        float_description[key]["max_value"] = value
-                else:
-                    float_description[key] = {}
-                    float_description[key]["min_value"] = value
-                    float_description[key]["max_value"] = value
-
-    return {"str": str_description, "float": float_description}
+    description = describe(dataset)
+    return description
 
 
 @app.post("/report")
@@ -62,7 +42,6 @@ def create_report(input:User_input):
     global dataset
     global dataset_filtered
     global dataset_matched_and_classified
-
 
     recalculate_filtering = True
     recalculate_matching_and_classification = True
@@ -76,7 +55,8 @@ def create_report(input:User_input):
         elif input.min_iou != last_input.min_iou:
             print("Status: Recalculate matching, classification and report")
             recalculate_filtering = False
-        elif input.metadata_boolean_expression != last_input.metadata_boolean_expression or \
+        elif input.study_boolean_expression != last_input.study_boolean_expression or \
+            input.image_boolean_expression != last_input.image_boolean_expression or \
             input.dimension_1_name != last_input.dimension_1_name or input.dimension_2_name != last_input.dimension_2_name or \
             input.dimension_1_type != last_input.dimension_1_type or input.dimension_2_type != last_input.dimension_2_type or \
             input.dimension_1_values != last_input.dimension_1_values or input.dimension_2_values != last_input.dimension_2_values:
@@ -99,9 +79,11 @@ def create_report(input:User_input):
     if recalculate_report:
         result = report(
             dataset_matched_and_classified,
+            input.study_boolean_expression,
+            input.image_boolean_expression,
             input.dimension_1_name, input.dimension_1_type, input.dimension_1_values,
             input.dimension_2_name, input.dimension_2_type, input.dimension_2_values,
-            input.metadata_boolean_expression)
+        )
         last_result = result
 
     last_input = input

@@ -1,6 +1,5 @@
 from typing import List
-from data import Dataset, Image
-from copy import deepcopy
+from data import StudyDataset, Study, Image
 import pandas as pd
 from multiprocessing import Pool
 
@@ -82,9 +81,15 @@ def _set_float_bucket(value, edges) -> str:
     return bucket
 
 
-def report(dataset: Dataset, dimension_1_name: str, dimension_1_type: str, dimension_1_values: List, dimension_2_name: str, dimension_2_type: str, dimension_2_values: List, metadata_boolean_expression: str):
+def report(dataset: StudyDataset, study_boolean_expression: str = "True", image_boolean_expression: str = "True", dimension_1_name: str = None, dimension_1_type: str = None, dimension_1_values: List = None, dimension_2_name: str = None, dimension_2_type: str = None, dimension_2_values: List = None):
 
-    images = [image for image in dataset.images if eval(metadata_boolean_expression)]
+    # TODO: Replace with double list comprehension
+    images = []
+    for study in dataset.studies:
+        if eval(study_boolean_expression):
+            for image in study.images:
+                if eval(image_boolean_expression):
+                    images.append(image)
 
     # Handle numeric dimensions
     if dimension_1_type == "float":

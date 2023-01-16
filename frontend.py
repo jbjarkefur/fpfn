@@ -19,11 +19,8 @@ if True:
 # Remove whitespace from the top of the page and sidebar
 st.markdown("""
         <style>
-            .css-18e3th9 {
-                padding-top: 0rem;
-                padding-bottom: 10rem;
-                padding-left: 5rem;
-                padding-right: 5rem;
+            .css-zt5igj.e16nr0p33 {
+                margin-top: -85px;
             }
             .css-1kyxreq.etr89bj2 {
                 margin-top: -50px;
@@ -41,28 +38,16 @@ with st.sidebar:
     with st.expander("Matching parameters"):
         min_iou = st.slider("min_iou", 0.0, 1.0, 0.2)
         threshold = st.slider("threshold", 0.0, 1.0, 0.5)
-
-    st.header("Filters")
-    with st.expander("Study filters"):
-        st.write("Placeholder")
-
-    with st.expander("Image filters"):
-        # List all available fields and let user select which ones to filter for
-
-        #  @st.experimental_memo(show_spinner=False)
-        def post_describe_metadata(url):
-            return requests.post(url=url)
-
-        describe_metadata_result = post_describe_metadata("http://127.0.0.1:8000/describe_metadata")
-        describe_metadata_data = describe_metadata_result.json()
+    
+    def filtering(level: str, metadata_description: dict) -> str:
         metadata_boolean_expression = ""
-        for key, values in describe_metadata_data["str"].items():
+        for key, values in metadata_description[level]["str"].items():
             selected_options = st.multiselect(f"{key}", values)
             if len(selected_options) > 0:
                 if len(metadata_boolean_expression) > 0:
                     metadata_boolean_expression += " and "
-                metadata_boolean_expression += f"image.metadata['{key}'] in {selected_options}"
-        for key, values in describe_metadata_data["float"].items():
+                metadata_boolean_expression += f"{level}.metadata['{key}'] in {selected_options}"
+        for key, values in metadata_description[level]["float"].items():
             col1, col2 = st.columns(2)
             with col1:
                 selected_min_value = st.number_input(f"Min {key}", values["min_value"], values["max_value"], values["min_value"])
@@ -71,20 +56,35 @@ with st.sidebar:
             if selected_min_value > values["min_value"]:
                 if len(metadata_boolean_expression) > 0:
                     metadata_boolean_expression += " and "
-                metadata_boolean_expression += f"image.metadata['{key}'] >= {selected_min_value}"
+                metadata_boolean_expression += f"{level}.metadata['{key}'] >= {selected_min_value}"
             if selected_max_value < values["max_value"]:
                 if len(metadata_boolean_expression) > 0:
                     metadata_boolean_expression += " and "
-                metadata_boolean_expression += f"image.metadata['{key}'] <= {selected_max_value}"
+                metadata_boolean_expression += f"{level}.metadata['{key}'] <= {selected_max_value}"
         if metadata_boolean_expression == "":
             metadata_boolean_expression = "True"
+        return metadata_boolean_expression
+
+    #  @st.experimental_memo(show_spinner=False)
+    def post_describe_metadata(url):
+        return requests.post(url=url)
+
+    describe_metadata_result = post_describe_metadata("http://127.0.0.1:8000/describe_metadata")
+    describe_metadata_data = describe_metadata_result.json()
+
+    st.header("Filters")
+    with st.expander("Study filters"):
+        study_boolean_expression = filtering("study", describe_metadata_data)
+
+    with st.expander("Image filters"):
+        image_boolean_expression = filtering("image", describe_metadata_data)
 
     with st.expander("GT box filters"):
         st.write("Placeholder")
 
     st.header("Dimensions")
-    available_str_dimensions = list(describe_metadata_data["str"].keys())
-    available_float_dimensions = list(describe_metadata_data["float"].keys())
+    available_str_dimensions = list(describe_metadata_data["image"]["str"].keys())
+    available_float_dimensions = list(describe_metadata_data["image"]["float"].keys())
     available_dimensions = available_str_dimensions + available_float_dimensions
     selected_dimension_1 = st.selectbox("Dimension 1", [None] + available_dimensions)
     selected_dimension_1_type = "str" if selected_dimension_1 in available_str_dimensions else "float"
@@ -99,16 +99,26 @@ with st.sidebar:
             selected_metrics[metric] = st.checkbox(metric, True)
 
     with st.expander("Float field buckets"):
-        for key in describe_metadata_data["float"].keys():
-            min_value = describe_metadata_data["float"][key]["min_value"]
-            max_value = describe_metadata_data["float"][key]["max_value"]
+        st.subheader("Study")
+        for key in describe_metadata_data["study"]["float"].keys():
+            min_value = describe_metadata_data["study"]["float"][key]["min_value"]
+            max_value = describe_metadata_data["study"]["float"][key]["max_value"]
             default_edges = ", ".join([str(number) for number in np.round(np.arange(min_value, max_value + 0.01, (max_value - min_value) / 10), 2)])
             selected_edges = st.text_input(f"{key} edges", default_edges)
-            describe_metadata_data["float"][key]["selected_edges"] = selected_edges
+            describe_metadata_data["study"]["float"][key]["selected_edges"] = selected_edges
+
+        st.subheader("Image")
+        for key in describe_metadata_data["image"]["float"].keys():
+            min_value = describe_metadata_data["image"]["float"][key]["min_value"]
+            max_value = describe_metadata_data["image"]["float"][key]["max_value"]
+            default_edges = ", ".join([str(number) for number in np.round(np.arange(min_value, max_value + 0.01, (max_value - min_value) / 10), 2)])
+            selected_edges = st.text_input(f"{key} edges", default_edges)
+            describe_metadata_data["image"]["float"][key]["selected_edges"] = selected_edges
 
 # Convert inputs to json format
 inputs = {
-    "metadata_boolean_expression": metadata_boolean_expression,
+    "study_boolean_expression": study_boolean_expression,
+    "image_boolean_expression": image_boolean_expression,
     "min_iou": min_iou,
     "threshold": threshold
 }
@@ -117,16 +127,16 @@ if selected_dimension_1:
     inputs["dimension_1_name"] = selected_dimension_1
     inputs["dimension_1_type"] = selected_dimension_1_type
     if selected_dimension_1_type == "str":
-        inputs["dimension_1_values"] = list(describe_metadata_data["str"][selected_dimension_1])
+        inputs["dimension_1_values"] = list(describe_metadata_data["image"]["str"][selected_dimension_1])
     else:
-        inputs["dimension_1_values"] = [float(value) for value in describe_metadata_data["float"][selected_dimension_1]["selected_edges"].split(', ')]
+        inputs["dimension_1_values"] = [float(value) for value in describe_metadata_data["image"]["float"][selected_dimension_1]["selected_edges"].split(', ')]
 if selected_dimension_2 and (selected_dimension_1 != selected_dimension_2):
     inputs["dimension_2_name"] = selected_dimension_2
     inputs["dimension_2_type"] = selected_dimension_2_type
     if selected_dimension_2_type == "str":
-        inputs["dimension_2_values"] = list(describe_metadata_data["str"][selected_dimension_2])
+        inputs["dimension_2_values"] = list(describe_metadata_data["image"]["str"][selected_dimension_2])
     else:
-        inputs["dimension_2_values"] = [float(value) for value in describe_metadata_data["float"][selected_dimension_2]["selected_edges"].split(', ')]
+        inputs["dimension_2_values"] = [float(value) for value in describe_metadata_data["image"]["float"][selected_dimension_2]["selected_edges"].split(', ')]
 data = json.dumps(inputs)
 
 # Make a request to the FastAPI
@@ -143,8 +153,8 @@ for metric in selected_metrics:
         report_dataframe.drop(metric, axis=1, inplace=True)
 
 # Print report
-filter_text = f"**Study filter:** None" + "  \n" + \
-    f"**Image filter:** {'None' if metadata_boolean_expression == 'True' else metadata_boolean_expression}" + "  \n" \
+filter_text = f"**Study filter:** {'None' if study_boolean_expression == 'True' else study_boolean_expression}" + "  \n" \
+    f"**Image filter:** {'None' if image_boolean_expression == 'True' else image_boolean_expression}" + "  \n" \
     f"**GT box filter:** None"
 st.write(filter_text)
 
