@@ -22,7 +22,7 @@ class User_input(BaseModel):
     threshold: float
 
 app = FastAPI()
-dataset = generate_test_dataset(20000)
+dataset = generate_test_dataset(5000)
 dataset_filtered = None
 dataset_matched_and_classified = None
 last_input = None
