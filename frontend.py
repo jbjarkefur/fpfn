@@ -82,14 +82,30 @@ with st.sidebar:
     with st.expander("GT box filters"):
         st.write("Placeholder")
 
+
     st.header("Dimensions")
-    available_str_dimensions = list(describe_metadata_data["image"]["str"].keys())
-    available_float_dimensions = list(describe_metadata_data["image"]["float"].keys())
-    available_dimensions = available_str_dimensions + available_float_dimensions
+    available_study_str_dimensions = ["Study " + dimension for dimension in describe_metadata_data["study"]["str"].keys()]
+    available_study_float_dimensions = ["Study " + dimension for dimension in describe_metadata_data["study"]["float"].keys()]
+    available_image_str_dimensions = ["Image " + dimension for dimension in describe_metadata_data["image"]["str"].keys()]
+    available_image_float_dimensions = ["Image " + dimension for dimension in describe_metadata_data["image"]["float"].keys()]
+
+    available_dimensions = available_study_str_dimensions + available_study_float_dimensions + available_image_str_dimensions + available_image_float_dimensions
     selected_dimension_1 = st.selectbox("Dimension 1", [None] + available_dimensions)
-    selected_dimension_1_type = "str" if selected_dimension_1 in available_str_dimensions else "float"
     selected_dimension_2 = st.selectbox("Dimension 2", [None] + available_dimensions)
+
+    available_study_dimensions = available_study_str_dimensions + available_study_float_dimensions
+    selected_dimension_1_level = "study" if selected_dimension_1 in available_study_dimensions else "image"
+    selected_dimension_2_level = "study" if selected_dimension_2 in available_study_dimensions else "image"
+
+    available_str_dimensions = available_study_str_dimensions + available_image_str_dimensions
+    selected_dimension_1_type = "str" if selected_dimension_1 in available_str_dimensions else "float"
     selected_dimension_2_type = "str" if selected_dimension_2 in available_str_dimensions else "float"
+
+    if selected_dimension_1 is not None:
+        selected_dimension_1 = selected_dimension_1.replace("Study ", "").replace("Image ", "")
+    if selected_dimension_2 is not None:
+        selected_dimension_2 = selected_dimension_2.replace("Study ", "").replace("Image ", "")
+
 
     st.header("Other")
     with st.expander("Metrics"):
@@ -125,18 +141,20 @@ inputs = {
 
 if selected_dimension_1:
     inputs["dimension_1_name"] = selected_dimension_1
+    inputs["dimension_1_level"] = selected_dimension_1_level
     inputs["dimension_1_type"] = selected_dimension_1_type
     if selected_dimension_1_type == "str":
-        inputs["dimension_1_values"] = list(describe_metadata_data["image"]["str"][selected_dimension_1])
+        inputs["dimension_1_values"] = list(describe_metadata_data[selected_dimension_1_level]["str"][selected_dimension_1])
     else:
-        inputs["dimension_1_values"] = [float(value) for value in describe_metadata_data["image"]["float"][selected_dimension_1]["selected_edges"].split(', ')]
+        inputs["dimension_1_values"] = [float(value) for value in describe_metadata_data[selected_dimension_1_level]["float"][selected_dimension_1]["selected_edges"].split(', ')]
 if selected_dimension_2 and (selected_dimension_1 != selected_dimension_2):
     inputs["dimension_2_name"] = selected_dimension_2
+    inputs["dimension_2_level"] = selected_dimension_2_level
     inputs["dimension_2_type"] = selected_dimension_2_type
     if selected_dimension_2_type == "str":
-        inputs["dimension_2_values"] = list(describe_metadata_data["image"]["str"][selected_dimension_2])
+        inputs["dimension_2_values"] = list(describe_metadata_data[selected_dimension_2_level]["str"][selected_dimension_2])
     else:
-        inputs["dimension_2_values"] = [float(value) for value in describe_metadata_data["image"]["float"][selected_dimension_2]["selected_edges"].split(', ')]
+        inputs["dimension_2_values"] = [float(value) for value in describe_metadata_data[selected_dimension_2_level]["float"][selected_dimension_2]["selected_edges"].split(', ')]
 data = json.dumps(inputs)
 
 # Make a request to the FastAPI
