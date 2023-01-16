@@ -92,7 +92,7 @@ def _get_bucket_names(edges) -> List[str]:
     return bucket_names
 
 
-def _set_float_bucket(value, edges) -> str:
+def _set_bucket(value, edges) -> str:
     bucket = None
     for lower_edge, upper_edge in zip(edges[:-2], edges[1:-1]):
         if value >= lower_edge and value < upper_edge:
@@ -107,13 +107,13 @@ def _set_float_bucket(value, edges) -> str:
 
 
 def _add_buckets_for_numeric_dimension(studies, dimension_name, dimension_level, dimension_type, dimension_values):
-    if dimension_type == "float":
+    if dimension_type in ["int", "float"]:
         for study in studies:
             if dimension_level == "study":
-                study.metadata[f"{dimension_name}_bucket"] = _set_float_bucket(study.metadata[dimension_name], dimension_values)
+                study.metadata[f"{dimension_name}_bucket"] = _set_bucket(study.metadata[dimension_name], dimension_values)
             else:
                 for image in study.images:
-                    image.metadata[f"{dimension_name}_bucket"] = _set_float_bucket(image.metadata[dimension_name], dimension_values)
+                    image.metadata[f"{dimension_name}_bucket"] = _set_bucket(image.metadata[dimension_name], dimension_values)
 
         dimension_name += "_bucket"
         dimension_values = _get_bucket_names(dimension_values)

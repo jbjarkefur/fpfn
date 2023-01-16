@@ -56,14 +56,30 @@ with st.sidebar:
                 if len(metadata_boolean_expression) > 0:
                     metadata_boolean_expression += " and "
                 metadata_boolean_expression += f"{level}.metadata['{key}'] in {selected_options}"
+        for key, values in metadata_description[level]["int"].items():
+            col1, col2 = st.columns(2)
+            min_value = values["min_value"]
+            max_value = values["max_value"]
+            with col1:
+                selected_min_value = st.number_input(f"Min {key}", min_value, max_value, min_value, step=1)
+            with col2:
+                selected_max_value = st.number_input(f"Max {key}", min_value, max_value, max_value, step=1)
+            if selected_min_value > min_value:
+                if len(metadata_boolean_expression) > 0:
+                    metadata_boolean_expression += " and "
+                metadata_boolean_expression += f"{level}.metadata['{key}'] >= {selected_min_value}"
+            if selected_max_value < max_value:
+                if len(metadata_boolean_expression) > 0:
+                    metadata_boolean_expression += " and "
+                metadata_boolean_expression += f"{level}.metadata['{key}'] <= {selected_max_value}"
         for key, values in metadata_description[level]["float"].items():
             col1, col2 = st.columns(2)
             min_value = floor_with_decimals(values["min_value"], 2)
             max_value = ceil_with_decimals(values["max_value"], 2)
             with col1:
-                selected_min_value = st.number_input(f"Min {key}", min_value, max_value, min_value)
+                selected_min_value = st.number_input(f"Min {key}", min_value, max_value, min_value, step=0.01)
             with col2:
-                selected_max_value = st.number_input(f"Max {key}", min_value, max_value, max_value)
+                selected_max_value = st.number_input(f"Max {key}", min_value, max_value, max_value, step=0.01)
             if selected_min_value > min_value:
                 if len(metadata_boolean_expression) > 0:
                     metadata_boolean_expression += " and "
@@ -96,21 +112,35 @@ with st.sidebar:
 
     st.header("Dimensions")
     available_study_str_dimensions = ["Study " + dimension for dimension in describe_metadata_data["study"]["str"].keys()]
+    available_study_int_dimensions = ["Study " + dimension for dimension in describe_metadata_data["study"]["int"].keys()]
     available_study_float_dimensions = ["Study " + dimension for dimension in describe_metadata_data["study"]["float"].keys()]
     available_image_str_dimensions = ["Image " + dimension for dimension in describe_metadata_data["image"]["str"].keys()]
+    available_image_int_dimensions = ["Image " + dimension for dimension in describe_metadata_data["image"]["int"].keys()]
     available_image_float_dimensions = ["Image " + dimension for dimension in describe_metadata_data["image"]["float"].keys()]
 
-    available_dimensions = available_study_str_dimensions + available_study_float_dimensions + available_image_str_dimensions + available_image_float_dimensions
+    available_dimensions = available_study_str_dimensions + available_study_int_dimensions + available_study_float_dimensions + available_image_str_dimensions + available_image_int_dimensions + available_image_float_dimensions
     selected_dimension_1 = st.selectbox("Dimension 1", [None] + available_dimensions)
     selected_dimension_2 = st.selectbox("Dimension 2", [None] + available_dimensions)
 
-    available_study_dimensions = available_study_str_dimensions + available_study_float_dimensions
+    available_study_dimensions = available_study_str_dimensions + available_study_int_dimensions + available_study_float_dimensions
     selected_dimension_1_level = "study" if selected_dimension_1 in available_study_dimensions else "image"
     selected_dimension_2_level = "study" if selected_dimension_2 in available_study_dimensions else "image"
 
-    available_str_dimensions = available_study_str_dimensions + available_image_str_dimensions
-    selected_dimension_1_type = "str" if selected_dimension_1 in available_str_dimensions else "float"
-    selected_dimension_2_type = "str" if selected_dimension_2 in available_str_dimensions else "float"
+    def get_dimension_type_from_name(selected_dimension):
+        available_str_dimensions = available_study_str_dimensions + available_image_str_dimensions
+        available_int_dimensions = available_study_int_dimensions + available_image_int_dimensions
+
+        if selected_dimension in available_str_dimensions:
+            dimension_type = "str"
+        elif selected_dimension in available_int_dimensions:
+            dimension_type = "int"
+        else:
+            dimension_type = "float"
+
+        return dimension_type
+
+    selected_dimension_1_type = get_dimension_type_from_name(selected_dimension_1)
+    selected_dimension_2_type = get_dimension_type_from_name(selected_dimension_2)
 
     if selected_dimension_1 is not None:
         selected_dimension_1 = selected_dimension_1.replace("Study ", "").replace("Image ", "")
@@ -125,7 +155,15 @@ with st.sidebar:
         for metric in available_metrics:
             selected_metrics[metric] = st.checkbox(metric, True)
 
-    with st.expander("Float field buckets"):
+    with st.expander("Field buckets"):
+
+        def _get_default_edges_str_for_int_field(field_description: dict) -> str:
+            min_value = field_description["min_value"]
+            max_value = field_description["max_value"]
+            default_edges = np.linspace(min_value, max_value, 11)
+            default_edges_round = [int(default_edge) for default_edge in default_edges]
+            default_edges_str = ", ".join([str(default_edge) for default_edge in default_edges_round])
+            return default_edges_str
 
         def _get_default_edges_str_for_float_field(field_description: dict) -> str:
             min_value = field_description["min_value"]
@@ -136,15 +174,23 @@ with st.sidebar:
             return default_edges_str
 
         st.subheader("Study")
+        for field_name, field_description in describe_metadata_data["study"]["int"].items():
+            default_edges = _get_default_edges_str_for_int_field(field_description)
+            selected_edges = st.text_input(f"{field_name} edges (int values)", default_edges)
+            describe_metadata_data["study"]["int"][field_name]["selected_edges"] = selected_edges
         for field_name, field_description in describe_metadata_data["study"]["float"].items():
             default_edges = _get_default_edges_str_for_float_field(field_description)
-            selected_edges = st.text_input(f"{field_name} edges", default_edges)
+            selected_edges = st.text_input(f"{field_name} edges (float values)", default_edges)
             describe_metadata_data["study"]["float"][field_name]["selected_edges"] = selected_edges
 
         st.subheader("Image")
+        for field_name, field_description in describe_metadata_data["image"]["int"].items():
+            default_edges = _get_default_edges_str_for_int_field(field_description)
+            selected_edges = st.text_input(f"{field_name} edges (int values)", default_edges)
+            describe_metadata_data["image"]["int"][field_name]["selected_edges"] = selected_edges
         for field_name, field_description in describe_metadata_data["image"]["float"].items():
             default_edges = _get_default_edges_str_for_float_field(field_description)
-            selected_edges = st.text_input(f"{field_name} edges", default_edges)
+            selected_edges = st.text_input(f"{field_name} edges (float values)", default_edges)
             describe_metadata_data["image"]["float"][field_name]["selected_edges"] = selected_edges
 
 # Convert inputs to json format
@@ -161,6 +207,10 @@ if selected_dimension_1:
     inputs["dimension_1_type"] = selected_dimension_1_type
     if selected_dimension_1_type == "str":
         inputs["dimension_1_values"] = list(describe_metadata_data[selected_dimension_1_level]["str"][selected_dimension_1])
+    elif selected_dimension_1_type == "int":
+        print(selected_dimension_1, selected_dimension_1_level, selected_dimension_1_type)
+        print(describe_metadata_data)
+        inputs["dimension_1_values"] = [int(float(value)) for value in describe_metadata_data[selected_dimension_1_level]["int"][selected_dimension_1]["selected_edges"].split(', ')]
     else:
         inputs["dimension_1_values"] = [float(value) for value in describe_metadata_data[selected_dimension_1_level]["float"][selected_dimension_1]["selected_edges"].split(', ')]
 if selected_dimension_2 and (selected_dimension_1 != selected_dimension_2):
@@ -169,6 +219,8 @@ if selected_dimension_2 and (selected_dimension_1 != selected_dimension_2):
     inputs["dimension_2_type"] = selected_dimension_2_type
     if selected_dimension_2_type == "str":
         inputs["dimension_2_values"] = list(describe_metadata_data[selected_dimension_2_level]["str"][selected_dimension_2])
+    elif selected_dimension_2_type == "int":
+        inputs["dimension_2_values"] = [int(float(value)) for value in describe_metadata_data[selected_dimension_2_level]["int"][selected_dimension_2]["selected_edges"].split(', ')]
     else:
         inputs["dimension_2_values"] = [float(value) for value in describe_metadata_data[selected_dimension_2_level]["float"][selected_dimension_2]["selected_edges"].split(', ')]
 data = json.dumps(inputs)
