@@ -49,7 +49,7 @@ def generate_test_dataset(n_studies: int = 100) -> StudyDataset:
             ["US", "France", "Germany", "UK", "Sweden", "Denmark", "Spain"], [0.25, 0.2, 0.1, 0.2, 0.1, 0.1, 0.05])[0]
         study.metadata["gender"] = random.choices(
             ["Male", "Female"], [0.7, 0.3])[0]
-        study.metadata["age"] = random.uniform(0, 100)
+        study.metadata["age"] = random.randint(0, 100)
 
         # Add 2-5 images to the study
         n_images = random.randint(2, 5)

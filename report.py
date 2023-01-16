@@ -9,17 +9,26 @@ def _report(studies: List[Study],
     dimension_1_name: str = None, dimension_1_level: str = None, dimension_1_value: str = None,
     dimension_2_name: str = None, dimension_2_level: str = None, dimension_2_value: str = None):
 
-    n_images, n_positive_images, n_negative_images, n_tp, n_fn, n_fp = 0, 0, 0, 0, 0, 0
+    n_images, n_pos_images = 0, 0
+    n_studies, n_pos_studies = 0, 0
+    n_tp, n_fn, n_fp = 0, 0, 0
     for study in studies:
+        n_studies += 1
+        study_is_positive = False
         for image in study.images:
             n_images += 1
             if len(image.ground_truths) > 0:
-                n_positive_images += 1
-            else:
-                n_negative_images += 1
+                study_is_positive = True
+                n_pos_images += 1
             n_tp += image.n_tp
             n_fn += image.n_fn
             n_fp += image.n_fp
+        if study_is_positive:
+            n_pos_studies += 1
+
+    n_neg_studies = n_studies - n_pos_studies
+    n_neg_images = n_images - n_pos_images
+
     if n_images > 0:
         # Calculate KPIs
         if (n_tp + n_fn) > 0:
@@ -37,24 +46,18 @@ def _report(studies: List[Study],
             "n_fn" : [float(n_fn)],
             "n_fp" : [float(n_fp)],
             "n_images": [float(n_images)],
-            "n_positive_images": [float(n_positive_images)],
-            "n_negative_images": [float(n_negative_images)]
+            "n_pos_images": [float(n_pos_images)],
+            "n_neg_images": [float(n_neg_images)],
+            "n_studies": [float(n_studies)],
+            "n_pos_studies": [float(n_pos_studies)],
+            "n_neg_studies": [float(n_neg_studies)]
         })
         if dimension_2_name is not None:
             report.insert(loc=0, column=dimension_2_level.capitalize() + " " + dimension_2_name, value=[dimension_2_value])
         if (dimension_1_name is not None) and (dimension_1_name != dimension_2_name):
             report.insert(loc=0, column=dimension_1_level.capitalize() + " " + dimension_1_name, value=[dimension_1_value])
     else:
-        report = pd.DataFrame({
-            "tp_rate": [],
-            "fps_per_image": [],
-            "n_tp" : [],
-            "n_fn" : [],
-            "n_fp" : [],
-            "n_images": [],
-            "n_positive_images": [],
-            "n_negative_images": []
-        })
+        report = None
     
     return report
 
@@ -185,6 +188,7 @@ def report(dataset: StudyDataset,
 
         with Pool() as pool:
             reports = pool.map(_report_row, pool_arguments)
+        reports = [report for report in reports if report is not None]
         report = pd.concat(reports, ignore_index=True)
 
     return report

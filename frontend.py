@@ -28,6 +28,15 @@ st.markdown("""
         </style>
         """, unsafe_allow_html=True)
 
+
+def ceil_with_decimals(a, decimals=0):
+    return np.true_divide(np.ceil(a * 10**decimals), 10**decimals)
+
+
+def floor_with_decimals(a, decimals=0):
+    return np.true_divide(np.floor(a * 10**decimals), 10**decimals)
+
+
 st.title("Fracture Detection")
 
 # Take user inputs
@@ -49,15 +58,17 @@ with st.sidebar:
                 metadata_boolean_expression += f"{level}.metadata['{key}'] in {selected_options}"
         for key, values in metadata_description[level]["float"].items():
             col1, col2 = st.columns(2)
+            min_value = floor_with_decimals(values["min_value"], 2)
+            max_value = ceil_with_decimals(values["max_value"], 2)
             with col1:
-                selected_min_value = st.number_input(f"Min {key}", values["min_value"], values["max_value"], values["min_value"])
+                selected_min_value = st.number_input(f"Min {key}", min_value, max_value, min_value)
             with col2:
-                selected_max_value = st.number_input(f"Max {key}", values["min_value"], values["max_value"], values["max_value"])
-            if selected_min_value > values["min_value"]:
+                selected_max_value = st.number_input(f"Max {key}", min_value, max_value, max_value)
+            if selected_min_value > min_value:
                 if len(metadata_boolean_expression) > 0:
                     metadata_boolean_expression += " and "
                 metadata_boolean_expression += f"{level}.metadata['{key}'] >= {selected_min_value}"
-            if selected_max_value < values["max_value"]:
+            if selected_max_value < max_value:
                 if len(metadata_boolean_expression) > 0:
                     metadata_boolean_expression += " and "
                 metadata_boolean_expression += f"{level}.metadata['{key}'] <= {selected_max_value}"
@@ -115,21 +126,26 @@ with st.sidebar:
             selected_metrics[metric] = st.checkbox(metric, True)
 
     with st.expander("Float field buckets"):
+
+        def _get_default_edges_str_for_float_field(field_description: dict) -> str:
+            min_value = field_description["min_value"]
+            max_value = field_description["max_value"]
+            default_edges = np.linspace(min_value, max_value, 11)
+            default_edges_round = [floor_with_decimals(default_edge, 2) for default_edge in default_edges[:-1]] + [ceil_with_decimals(default_edges[-1], 2)]
+            default_edges_str = ", ".join([str(default_edge) for default_edge in default_edges_round])
+            return default_edges_str
+
         st.subheader("Study")
-        for key in describe_metadata_data["study"]["float"].keys():
-            min_value = describe_metadata_data["study"]["float"][key]["min_value"]
-            max_value = describe_metadata_data["study"]["float"][key]["max_value"]
-            default_edges = ", ".join([str(number) for number in np.round(np.arange(min_value, max_value + 0.01, (max_value - min_value) / 10), 2)])
-            selected_edges = st.text_input(f"{key} edges", default_edges)
-            describe_metadata_data["study"]["float"][key]["selected_edges"] = selected_edges
+        for field_name, field_description in describe_metadata_data["study"]["float"].items():
+            default_edges = _get_default_edges_str_for_float_field(field_description)
+            selected_edges = st.text_input(f"{field_name} edges", default_edges)
+            describe_metadata_data["study"]["float"][field_name]["selected_edges"] = selected_edges
 
         st.subheader("Image")
-        for key in describe_metadata_data["image"]["float"].keys():
-            min_value = describe_metadata_data["image"]["float"][key]["min_value"]
-            max_value = describe_metadata_data["image"]["float"][key]["max_value"]
-            default_edges = ", ".join([str(number) for number in np.round(np.arange(min_value, max_value + 0.01, (max_value - min_value) / 10), 2)])
-            selected_edges = st.text_input(f"{key} edges", default_edges)
-            describe_metadata_data["image"]["float"][key]["selected_edges"] = selected_edges
+        for field_name, field_description in describe_metadata_data["image"]["float"].items():
+            default_edges = _get_default_edges_str_for_float_field(field_description)
+            selected_edges = st.text_input(f"{field_name} edges", default_edges)
+            describe_metadata_data["image"]["float"][field_name]["selected_edges"] = selected_edges
 
 # Convert inputs to json format
 inputs = {
@@ -156,8 +172,6 @@ if selected_dimension_2 and (selected_dimension_1 != selected_dimension_2):
     else:
         inputs["dimension_2_values"] = [float(value) for value in describe_metadata_data[selected_dimension_2_level]["float"][selected_dimension_2]["selected_edges"].split(', ')]
 data = json.dumps(inputs)
-
-# Make a request to the FastAPI
 
 #  @st.experimental_memo(show_spinner=False)
 def post_report(url, data):
