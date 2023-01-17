@@ -143,9 +143,9 @@ with st.sidebar:
     selected_dimension_2_type = get_dimension_type_from_name(selected_dimension_2)
 
     if selected_dimension_1 is not None:
-        selected_dimension_1 = selected_dimension_1.replace("Study ", "").replace("Image ", "")
+        selected_dimension_1_name = selected_dimension_1.replace("Study ", "").replace("Image ", "")
     if selected_dimension_2 is not None:
-        selected_dimension_2 = selected_dimension_2.replace("Study ", "").replace("Image ", "")
+        selected_dimension_2_name = selected_dimension_2.replace("Study ", "").replace("Image ", "")
 
 
     st.header("Other")
@@ -202,27 +202,25 @@ inputs = {
 }
 
 if selected_dimension_1:
-    inputs["dimension_1_name"] = selected_dimension_1
+    inputs["dimension_1_name"] = selected_dimension_1_name
     inputs["dimension_1_level"] = selected_dimension_1_level
     inputs["dimension_1_type"] = selected_dimension_1_type
     if selected_dimension_1_type == "str":
-        inputs["dimension_1_values"] = list(describe_metadata_data[selected_dimension_1_level]["str"][selected_dimension_1])
+        inputs["dimension_1_values"] = list(describe_metadata_data[selected_dimension_1_level]["str"][selected_dimension_1_name])
     elif selected_dimension_1_type == "int":
-        print(selected_dimension_1, selected_dimension_1_level, selected_dimension_1_type)
-        print(describe_metadata_data)
-        inputs["dimension_1_values"] = [int(float(value)) for value in describe_metadata_data[selected_dimension_1_level]["int"][selected_dimension_1]["selected_edges"].split(', ')]
+        inputs["dimension_1_values"] = [int(float(value)) for value in describe_metadata_data[selected_dimension_1_level]["int"][selected_dimension_1_name]["selected_edges"].split(', ')]
     else:
-        inputs["dimension_1_values"] = [float(value) for value in describe_metadata_data[selected_dimension_1_level]["float"][selected_dimension_1]["selected_edges"].split(', ')]
+        inputs["dimension_1_values"] = [float(value) for value in describe_metadata_data[selected_dimension_1_level]["float"][selected_dimension_1_name]["selected_edges"].split(', ')]
 if selected_dimension_2 and (selected_dimension_1 != selected_dimension_2):
-    inputs["dimension_2_name"] = selected_dimension_2
+    inputs["dimension_2_name"] = selected_dimension_2_name
     inputs["dimension_2_level"] = selected_dimension_2_level
     inputs["dimension_2_type"] = selected_dimension_2_type
     if selected_dimension_2_type == "str":
-        inputs["dimension_2_values"] = list(describe_metadata_data[selected_dimension_2_level]["str"][selected_dimension_2])
+        inputs["dimension_2_values"] = list(describe_metadata_data[selected_dimension_2_level]["str"][selected_dimension_2_name])
     elif selected_dimension_2_type == "int":
-        inputs["dimension_2_values"] = [int(float(value)) for value in describe_metadata_data[selected_dimension_2_level]["int"][selected_dimension_2]["selected_edges"].split(', ')]
+        inputs["dimension_2_values"] = [int(float(value)) for value in describe_metadata_data[selected_dimension_2_level]["int"][selected_dimension_2_name]["selected_edges"].split(', ')]
     else:
-        inputs["dimension_2_values"] = [float(value) for value in describe_metadata_data[selected_dimension_2_level]["float"][selected_dimension_2]["selected_edges"].split(', ')]
+        inputs["dimension_2_values"] = [float(value) for value in describe_metadata_data[selected_dimension_2_level]["float"][selected_dimension_2_name]["selected_edges"].split(', ')]
 data = json.dumps(inputs)
 
 #  @st.experimental_memo(show_spinner=False)
@@ -248,15 +246,19 @@ if selected_metrics["tp_rate"]:
 if selected_metrics["fps_per_image"]:
     options_builder.configure_column("fps_per_image", type=["numericColumn", "numberColumnFilter", "customNumericFormat"], precision=3)
 # options_builder.configure_grid_options(masterDetail=True, detailRowAutoHeight=True)
+options_builder.configure_selection(use_checkbox=True)
 grid_options = options_builder.build()
-AgGrid(report_dataframe, gridOptions=grid_options, columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
+aggrid_result = AgGrid(report_dataframe, gridOptions=grid_options, columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
 
-
-
-# st.header(f"Dataset name: {report_data['dataset_name']}")
-# st.write(f"**Images:** {report_data['n_images_filtered']} out of {report_data['n_images']}")
-# st.write(f"**TP-rate:** {report_data['tp_rate'] * 100:.1f}%")
-# st.write(f"**FPs per image:** {report_data['fps_per_image']:.3f}")
-# st.write(f"**Number of TPs:** {report_data['n_tp']}")
-# st.write(f"**Number of FNs:** {report_data['n_fn']}")
-# st.write(f"**Number of FPs:** {report_data['n_fp']}")
+if len(aggrid_result.selected_rows) > 0:
+    selected_row = aggrid_result.selected_rows[0]
+    selected_row_text = ""
+    if selected_dimension_1 is not None:
+        selected_row_text += f"**{selected_dimension_1}**: {selected_row[selected_dimension_1]}"
+    if selected_dimension_2 is not None:
+        if selected_row_text != "":
+            selected_row_text += ", "
+        selected_row_text += f"**{selected_dimension_2}**: {selected_row[selected_dimension_2]}"
+else:
+    selected_row_text = "Click any row to look at the corresponding images"
+st.write(selected_row_text)

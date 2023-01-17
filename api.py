@@ -25,6 +25,7 @@ class User_input(BaseModel):
 
 app = FastAPI()
 dataset = generate_test_dataset(5000)
+description = describe(dataset)
 dataset_filtered = None
 dataset_matched_and_classified = None
 last_input = None
@@ -33,7 +34,6 @@ last_result = None
 
 @app.post("/describe_metadata")
 def describe_metadata():
-    description = describe(dataset)
     return description
 
 
