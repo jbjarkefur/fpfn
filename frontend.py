@@ -112,11 +112,11 @@ with st.sidebar:
 
     st.header("Dimensions")
     available_study_str_dimensions = ["Study " + dimension for dimension in describe_metadata_data["study"]["str"].keys()]
-    available_study_int_dimensions = ["Study " + dimension for dimension in describe_metadata_data["study"]["int"].keys()]
-    available_study_float_dimensions = ["Study " + dimension for dimension in describe_metadata_data["study"]["float"].keys()]
+    available_study_int_dimensions = ["Study " + dimension + "_bucket" for dimension in describe_metadata_data["study"]["int"].keys()]
+    available_study_float_dimensions = ["Study " + dimension + "_bucket" for dimension in describe_metadata_data["study"]["float"].keys()]
     available_image_str_dimensions = ["Image " + dimension for dimension in describe_metadata_data["image"]["str"].keys()]
-    available_image_int_dimensions = ["Image " + dimension for dimension in describe_metadata_data["image"]["int"].keys()]
-    available_image_float_dimensions = ["Image " + dimension for dimension in describe_metadata_data["image"]["float"].keys()]
+    available_image_int_dimensions = ["Image " + dimension + "_bucket" for dimension in describe_metadata_data["image"]["int"].keys()]
+    available_image_float_dimensions = ["Image " + dimension + "_bucket" for dimension in describe_metadata_data["image"]["float"].keys()]
 
     available_dimensions = available_study_str_dimensions + available_study_int_dimensions + available_study_float_dimensions + available_image_str_dimensions + available_image_int_dimensions + available_image_float_dimensions
     selected_dimension_1 = st.selectbox("Dimension 1", [None] + available_dimensions)
@@ -143,9 +143,9 @@ with st.sidebar:
     selected_dimension_2_type = get_dimension_type_from_name(selected_dimension_2)
 
     if selected_dimension_1 is not None:
-        selected_dimension_1_name = selected_dimension_1.replace("Study ", "").replace("Image ", "")
+        selected_dimension_1_name = selected_dimension_1.replace("Study ", "").replace("Image ", "").replace("_bucket", "")
     if selected_dimension_2 is not None:
-        selected_dimension_2_name = selected_dimension_2.replace("Study ", "").replace("Image ", "")
+        selected_dimension_2_name = selected_dimension_2.replace("Study ", "").replace("Image ", "").replace("_bucket", "")
 
 
     st.header("Other")
