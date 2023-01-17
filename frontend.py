@@ -96,7 +96,7 @@ with st.sidebar:
     def post_describe_metadata(url):
         return requests.post(url=url)
 
-    describe_metadata_result = post_describe_metadata("http://127.0.0.1:8000/describe_metadata")
+    describe_metadata_result = post_describe_metadata("http://localhost:8000/describe_metadata")
     describe_metadata_data = describe_metadata_result.json()
 
     st.header("Filters")
@@ -227,7 +227,7 @@ data = json.dumps(inputs)
 def post_report(url, data):
     return requests.post(url=url, data=data)
 
-report_result = post_report("http://127.0.0.1:8000/report", data)
+report_result = post_report("http://localhost:8000/report", data)
 report_data = report_result.json()
 report_dataframe = pd.DataFrame(report_data)
 for metric in selected_metrics:
