@@ -7,3 +7,6 @@ dependencies:
   - fastapi[all]
   - streamlit
   - streamlit-aggrid
+  - matplotlib
+  - plotly
+  - scikit-image

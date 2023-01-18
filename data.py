@@ -50,6 +50,7 @@ class Classification(Enum):
 class Image():
     width: int
     height: int
+    filename: str = None
     ground_truths: List[GroundTruth] = field(default_factory=list)
     predictions: List[Prediction] = field(default_factory=list)
     metadata: dict = field(default_factory=dict)

@@ -39,6 +39,16 @@ def _generate_random_matching_prediction(image_width, image_height, ground_truth
 def generate_test_dataset(n_studies: int = 100) -> StudyDataset:
     random.seed(42)
 
+    image_descriptions = {
+        "test_data_images/arm_1.jpg": {"width": 1574, "height": 1920},
+        "test_data_images/foot_1.jpg": {"width": 1082, "height": 1920},
+        "test_data_images/hand_1.jpg": {"width": 1597, "height": 1920},
+        "test_data_images/hand_2.jpg": {"width": 1064, "height": 1280},
+        "test_data_images/knee_1.jpg": {"width": 1440, "height": 1920},
+        "test_data_images/knee_2.jpg": {"width": 1440, "height": 1920},
+        "test_data_images/wrist_1.jpg": {"width": 1080, "height": 1920}
+    }
+
     studies = []
     for _ in range(n_studies):
         # Create a new study
@@ -56,9 +66,13 @@ def generate_test_dataset(n_studies: int = 100) -> StudyDataset:
         for _ in range(n_images):
 
             # Create a new image
-            image_width = random.randint(800, 1600)
-            image_height = random.randint(800, 1600)
+            filename = random.choices(list(image_descriptions.keys()))[0]
+
+            image_width = image_descriptions[filename]["width"]
+            image_height = image_descriptions[filename]["height"]
             image = Image(image_width, image_height)
+
+            image.filename = filename
 
             # Set some random image metadata
             image.metadata["bodypart"] = random.choices(
