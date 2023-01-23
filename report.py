@@ -2,7 +2,22 @@ from typing import List
 from data import StudyDataset, Study
 import pandas as pd
 from multiprocessing import Pool
-import time
+
+
+def get_metrics() -> List[str]:
+    return [
+        "tp_rate",
+        "fps_per_image",
+        "n_tp",
+        "n_fn",
+        "n_fp",
+        "n_images",
+        "n_pos_images",
+        "n_neg_images",
+        "n_studies",
+        "n_pos_studies",
+        "n_neg_studies",
+    ]
 
 
 def _report(studies: List[Study],

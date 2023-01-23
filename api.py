@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from generate_test_data import generate_test_dataset
 from categorizer import match_and_classify, filter_predictions_using_threshold
 from describe_metadata import describe
-from report import report, filter_dataset, filter_studies_and_images_based_on_level
+from report import report, filter_dataset, filter_studies_and_images_based_on_level, get_metrics
 
 
 class Select_data_user_input(BaseModel):
@@ -39,6 +39,7 @@ class Create_report_user_input(BaseModel):
 app = FastAPI()
 dataset = generate_test_dataset(5000)
 description = describe(dataset)
+metrics = get_metrics()
 
 dataset_thresholded = None
 dataset_matched_and_classified = None
@@ -51,6 +52,11 @@ last_result = None
 @app.post("/describe_metadata")
 def describe_metadata():
     return description
+
+
+@app.post("/describe_metrics")
+def describe_metrics():
+    return metrics
 
 
 @app.post("/report")
@@ -121,9 +127,8 @@ def create_report(input:Create_report_user_input):
 
 
 # Must be called after "/report" has been called
-@app.post("/select_study")
-def select_study(input:Select_data_user_input):
-    print(dataset_filtered.studies[0].metadata)
+@app.post("/select_images")
+def select_images(input:Select_data_user_input):
 
     if input.dimension_1_name is not None:
         if input.dimension_1_type in ["int", "float"]:

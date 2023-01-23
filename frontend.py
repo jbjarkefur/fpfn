@@ -155,12 +155,19 @@ with st.sidebar:
 
     st.header("Other")
     with st.expander("Metrics"):
-        available_metrics = ["tp_rate", "fps_per_image", "n_tp", "n_fn", "n_fp", "n_images", "n_positive_images", "n_negative_images"]
+
+        #  @st.experimental_memo(show_spinner=False)
+        def post_describe_metrics(url):
+            return requests.post(url=url)
+        describe_metrics_result = post_describe_metrics("http://localhost:8000/describe_metrics")
+        available_metrics = describe_metrics_result.json()
+
         selected_metrics = {}
         for metric in available_metrics:
             selected_metrics[metric] = st.checkbox(metric, True)
 
     with st.expander("Field buckets"):
+        # TODO: Input validation, handle the case of empty input etc.
 
         def _get_default_edges_str_for_int_field(field_description: dict) -> str:
             min_value = field_description["min_value"]
@@ -280,9 +287,8 @@ if len(report_dataframe) > 0:
             selected_row_input["dimension_2_type"] = selected_dimension_2_type
             selected_row_input["dimension_2_value"] = selected_dimension_2_value
 
-        selected_study_result = post_report("http://localhost:8000/select_study", json.dumps(selected_row_input))
-        selected_study = selected_study_result.json()
-        images = selected_study
+        selected_images_result = post_report("http://localhost:8000/select_images", json.dumps(selected_row_input))
+        images = selected_images_result.json()
 
         st.write(f"Images with >= {min_image_tp} TP, >= {min_image_fn} FN and >= {min_image_fp} FP:")
 
