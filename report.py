@@ -135,7 +135,7 @@ def _add_buckets_for_numeric_dimension(studies, dimension_name, dimension_level,
 def filter_studies_and_images_based_on_level(studies: List[Study],
     dimension_1_name: str = None, dimension_1_level: str = None, dimension_1_value: str = None,
     dimension_2_name: str = None, dimension_2_level: str = None, dimension_2_value: str = None,
-    min_image_tp: int = 0, min_image_fn: int = 0, min_image_fp: int = 0):
+    min_image_tp: int = 0, min_image_fn: int = 0, min_image_fp: int = 0) -> List[Study]:
 
     study_boolean_expression = "True"
     image_boolean_expression = "True"

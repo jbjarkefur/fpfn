@@ -89,11 +89,7 @@ with st.sidebar:
             metadata_boolean_expression = "True"
         return metadata_boolean_expression
 
-    #  @st.experimental_memo(show_spinner=False)
-    def post_describe_metadata(url):
-        return requests.post(url=url)
-
-    describe_metadata_result = post_describe_metadata("http://localhost:8000/describe_metadata")
+    describe_metadata_result = requests.post(url="http://localhost:8000/describe_metadata")
     describe_metadata_data = describe_metadata_result.json()
 
     st.header("Filters")
@@ -151,15 +147,17 @@ with st.sidebar:
         min_image_fn = st.number_input("Min number of FN per image", 0, 9, 0)
     with col3:
         min_image_fp = st.number_input("Min number of FP per image", 0, 9, 0)
-    always_show_images_for_first_row = st.checkbox("Always show images for first row", False)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        n_images_per_page = st.number_input("Images per page", 1, 16, 8)
+    with col2:
+        always_show_images_for_first_row = st.checkbox("Always show images for first row", False)
 
     st.header("Other")
     with st.expander("Metrics"):
 
-        #  @st.experimental_memo(show_spinner=False)
-        def post_describe_metrics(url):
-            return requests.post(url=url)
-        describe_metrics_result = post_describe_metrics("http://localhost:8000/describe_metrics")
+        describe_metrics_result = requests.post(url="http://localhost:8000/describe_metrics")
         available_metrics = describe_metrics_result.json()
 
         selected_metrics = {}
@@ -206,7 +204,7 @@ with st.sidebar:
             describe_metadata_data["image"]["float"][field_name]["selected_edges"] = selected_edges
 
 # Convert inputs to json format
-inputs = {
+create_report_input = {
     "study_boolean_expression": study_boolean_expression,
     "image_boolean_expression": image_boolean_expression,
     "min_iou": min_iou,
@@ -214,37 +212,32 @@ inputs = {
 }
 
 if selected_dimension_1:
-    inputs["dimension_1_name"] = selected_dimension_1_name
-    inputs["dimension_1_level"] = selected_dimension_1_level
-    inputs["dimension_1_type"] = selected_dimension_1_type
+    create_report_input["dimension_1_name"] = selected_dimension_1_name
+    create_report_input["dimension_1_level"] = selected_dimension_1_level
+    create_report_input["dimension_1_type"] = selected_dimension_1_type
     if selected_dimension_1_type == "str":
-        inputs["dimension_1_values"] = list(describe_metadata_data[selected_dimension_1_level]["str"][selected_dimension_1_name])
+        create_report_input["dimension_1_values"] = list(describe_metadata_data[selected_dimension_1_level]["str"][selected_dimension_1_name])
     elif selected_dimension_1_type == "int":
-        inputs["dimension_1_values"] = [int(float(value)) for value in describe_metadata_data[selected_dimension_1_level]["int"][selected_dimension_1_name]["selected_edges"].split(', ')]
+        create_report_input["dimension_1_values"] = [int(float(value)) for value in describe_metadata_data[selected_dimension_1_level]["int"][selected_dimension_1_name]["selected_edges"].split(', ')]
     else:
-        inputs["dimension_1_values"] = [float(value) for value in describe_metadata_data[selected_dimension_1_level]["float"][selected_dimension_1_name]["selected_edges"].split(', ')]
+        create_report_input["dimension_1_values"] = [float(value) for value in describe_metadata_data[selected_dimension_1_level]["float"][selected_dimension_1_name]["selected_edges"].split(', ')]
 if selected_dimension_2 and (selected_dimension_1 != selected_dimension_2):
-    inputs["dimension_2_name"] = selected_dimension_2_name
-    inputs["dimension_2_level"] = selected_dimension_2_level
-    inputs["dimension_2_type"] = selected_dimension_2_type
+    create_report_input["dimension_2_name"] = selected_dimension_2_name
+    create_report_input["dimension_2_level"] = selected_dimension_2_level
+    create_report_input["dimension_2_type"] = selected_dimension_2_type
     if selected_dimension_2_type == "str":
-        inputs["dimension_2_values"] = list(describe_metadata_data[selected_dimension_2_level]["str"][selected_dimension_2_name])
+        create_report_input["dimension_2_values"] = list(describe_metadata_data[selected_dimension_2_level]["str"][selected_dimension_2_name])
     elif selected_dimension_2_type == "int":
-        inputs["dimension_2_values"] = [int(float(value)) for value in describe_metadata_data[selected_dimension_2_level]["int"][selected_dimension_2_name]["selected_edges"].split(', ')]
+        create_report_input["dimension_2_values"] = [int(float(value)) for value in describe_metadata_data[selected_dimension_2_level]["int"][selected_dimension_2_name]["selected_edges"].split(', ')]
     else:
-        inputs["dimension_2_values"] = [float(value) for value in describe_metadata_data[selected_dimension_2_level]["float"][selected_dimension_2_name]["selected_edges"].split(', ')]
-data = json.dumps(inputs)
+        create_report_input["dimension_2_values"] = [float(value) for value in describe_metadata_data[selected_dimension_2_level]["float"][selected_dimension_2_name]["selected_edges"].split(', ')]
 
 filter_text = f"**Study filter:** {'None' if study_boolean_expression == 'True' else study_boolean_expression}" + ", " \
     f"**Image filter:** {'None' if image_boolean_expression == 'True' else image_boolean_expression}" + ", " \
     f"**GT box filter:** None"
 st.write(filter_text)
 
-#  @st.experimental_memo(show_spinner=False)
-def post_report(url, data):
-    return requests.post(url=url, data=data)
-
-report_result = post_report("http://localhost:8000/report", data)
+report_result = requests.post(url="http://localhost:8000/create_report", data=json.dumps(create_report_input))
 report_data = report_result.json()
 report_dataframe = pd.DataFrame(report_data)
 if len(report_dataframe) > 0:
@@ -268,59 +261,84 @@ if len(report_dataframe) > 0:
 
     if len(aggrid_result.selected_rows) > 0:
 
-        selected_row_input = {
+        # Select images
+        select_images_input = {
             "min_image_tp": min_image_tp,
             "min_image_fn": min_image_fn,
-            "min_image_fp": min_image_fp,
+            "min_image_fp": min_image_fp
         }
-
+        selected_row = aggrid_result.selected_rows[0]
         if selected_dimension_1 is not None:
-            selected_dimension_1_value = aggrid_result.selected_rows[0][selected_dimension_1]
-            selected_row_input["dimension_1_name"] = selected_dimension_1_name
-            selected_row_input["dimension_1_level"] = selected_dimension_1_level
-            selected_row_input["dimension_1_type"] = selected_dimension_1_type
-            selected_row_input["dimension_1_value"] = selected_dimension_1_value
+            selected_dimension_1_value = selected_row[selected_dimension_1]
+            select_images_input["dimension_1_name"] = selected_dimension_1_name
+            select_images_input["dimension_1_level"] = selected_dimension_1_level
+            select_images_input["dimension_1_type"] = selected_dimension_1_type
+            select_images_input["dimension_1_value"] = selected_dimension_1_value
         if selected_dimension_2 is not None:
-            selected_dimension_2_value = aggrid_result.selected_rows[0][selected_dimension_2]
-            selected_row_input["dimension_2_name"] = selected_dimension_2_name
-            selected_row_input["dimension_2_level"] = selected_dimension_2_level
-            selected_row_input["dimension_2_type"] = selected_dimension_2_type
-            selected_row_input["dimension_2_value"] = selected_dimension_2_value
+            selected_dimension_2_value = selected_row[selected_dimension_2]
+            select_images_input["dimension_2_name"] = selected_dimension_2_name
+            select_images_input["dimension_2_level"] = selected_dimension_2_level
+            select_images_input["dimension_2_type"] = selected_dimension_2_type
+            select_images_input["dimension_2_value"] = selected_dimension_2_value
+        selected_images_result = requests.post(url="http://localhost:8000/select_images", data=json.dumps(select_images_input))
+        selected_images_description = selected_images_result.json()
+        n_selected_images = selected_images_description["n_selected_images"]
 
-        selected_images_result = post_report("http://localhost:8000/select_images", json.dumps(selected_row_input))
-        images = selected_images_result.json()
+        if n_selected_images > 0:
 
-        st.write(f"Images with >= {min_image_tp} TP, >= {min_image_fn} FN and >= {min_image_fp} FP:")
+            col1, col2 = st.columns([9, 1])
 
-        for row_index in range(2):
-            columns = st.columns(4)
-            for column_index, column in enumerate(columns):
-                image_index = column_index + 4*row_index
-                if image_index < len(images):
-                    image = images[column_index + 4*row_index]
-                    with column:
-                        im = io.imread(image["filename"])
-                        if len(im.shape) < 3:
-                            im = np.repeat(im[:, :, np.newaxis], 3, axis=2)
+            with col2:
+                n_pages = -(-n_selected_images // n_images_per_page)
+                page_number = st.number_input("Page: ", 1, n_pages, 1, label_visibility="collapsed")
 
-                        fig = px.imshow(im)
-                        fig.update_layout(
-                            margin=dict(l=0, r=0, t=0, b=0),
-                            hovermode=False,
-                            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),  # , fixedrange=False
-                            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                        )
+            # Get current page of the selected images
+            first_image_idx = (page_number - 1) * n_images_per_page
+            last_image_idx = min(max(0, first_image_idx + n_images_per_page - 1), n_selected_images - 1)
+            get_images_input = {
+                "first_image_idx": first_image_idx,
+                "last_image_idx": last_image_idx
+            }
+            get_images_result = requests.post(url="http://localhost:8000/get_images", data=json.dumps(get_images_input))
+            images = get_images_result.json()
 
-                        gt_line = line=dict(color="green", width=2)
-                        pred_line = line=dict(color="orange", width=2)
-                        ground_truth_shapes = [{"type": "rect", "x0": gt["x1"], "y0": gt["y1"], "x1": gt["x2"], "y1": gt["y2"], "line": gt_line} for gt in image["ground_truths"]]
-                        prediction_shapes = [{"type": "rect", "x0": gt["x1"], "y0": gt["y1"], "x1": gt["x2"], "y1": gt["y2"], "line": pred_line} for gt in image["predictions"]]
-                        shapes = ground_truth_shapes + prediction_shapes
-                        if len(shapes) > 0:
-                            fig.update_layout(shapes=shapes)
+            with col1:
+                st.write(f"Showing image {first_image_idx + 1} to {last_image_idx + 1} of {n_selected_images} images with at least {min_image_tp} TP, {min_image_fn} FN and {min_image_fp} FP:")
 
-                        config = dict({'scrollZoom': True, 'displayModeBar': False})
-                        st.plotly_chart(fig, config=config, use_container_width=True)
+            n_images = len(images)
+            n_columns = 4
+            n_rows = -(-n_images // n_columns)
+            for row_index in range(n_rows):
+                columns = st.columns(n_columns)
+                for column_index, column in enumerate(columns):
+                    image_index = column_index + n_columns * row_index
+                    if image_index < len(images):
+                        image = images[image_index]
+                        with column:
+                            im = io.imread(image["filename"])
+                            if len(im.shape) < 3:
+                                im = np.repeat(im[:, :, np.newaxis], 3, axis=2)
+
+                            fig = px.imshow(im)
+                            fig.update_layout(
+                                margin=dict(l=0, r=0, t=0, b=0),
+                                hovermode=False,
+                                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),  # , fixedrange=False
+                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                            )
+
+                            gt_line = line=dict(color="green", width=2)
+                            pred_line = line=dict(color="orange", width=2)
+                            ground_truth_shapes = [{"type": "rect", "x0": gt["x1"], "y0": gt["y1"], "x1": gt["x2"], "y1": gt["y2"], "line": gt_line} for gt in image["ground_truths"]]
+                            prediction_shapes = [{"type": "rect", "x0": gt["x1"], "y0": gt["y1"], "x1": gt["x2"], "y1": gt["y2"], "line": pred_line} for gt in image["predictions"]]
+                            shapes = ground_truth_shapes + prediction_shapes
+                            if len(shapes) > 0:
+                                fig.update_layout(shapes=shapes)
+
+                            config = dict({'scrollZoom': True, 'displayModeBar': False})
+                            st.plotly_chart(fig, config=config, use_container_width=True)
+        else:
+            st.write("No matching data, lower min number of TP, FN or FP")
     else:
         st.write("Click on any row in the table to look at the corresponding images")
 else:
