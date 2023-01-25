@@ -7,22 +7,75 @@ import numpy as np
 import plotly.express as px
 from skimage import io
 
+
 st.set_page_config(layout="wide")
+
+# Initialize frontend state
+for image_index in range(16):
+    button_key = f"button_{image_index}"
+    if button_key not in st.session_state:
+        st.session_state[button_key] = False
+if "selected_study_id" not in st.session_state:
+    st.session_state["selected_study_id"] = None
+
+
+def save_selected_study_id(selected_study_id):
+    st.session_state["selected_study_id"] = selected_study_id
+
+
+def plot_images_in_grid(images, n_columns=4, study_buttons=False, image_description=False):
+    n_images = len(images)
+    n_rows = -(-n_images // n_columns)
+    buttons = []
+    for row_index in range(n_rows):
+        columns = st.columns(n_columns)
+        for column_index, column in enumerate(columns):
+            image_index = column_index + n_columns * row_index
+            if image_index < len(images):
+                image = images[image_index]
+                with column:
+                    im = io.imread(image["filename"])
+                    if len(im.shape) < 3:
+                        im = np.repeat(im[:, :, np.newaxis], 3, axis=2)
+                    fig = px.imshow(im)
+                    fig.update_layout(
+                        margin=dict(l=0, r=0, t=0, b=0),
+                        hovermode=False,
+                        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),  # , fixedrange=False
+                        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                    )
+                    gt_line = dict(color="green", width=2)
+                    pred_line = dict(color="orange", width=2)
+                    ground_truth_shapes = [{"type": "rect", "x0": gt["x1"], "y0": gt["y1"], "x1": gt["x2"], "y1": gt["y2"], "line": gt_line} for gt in image["ground_truths"]]
+                    prediction_shapes = [{"type": "rect", "x0": gt["x1"], "y0": gt["y1"], "x1": gt["x2"], "y1": gt["y2"], "line": pred_line} for gt in image["predictions"]]
+                    shapes = ground_truth_shapes + prediction_shapes
+                    if len(shapes) > 0:
+                        fig.update_layout(shapes=shapes)
+                    config = dict({'scrollZoom': True, 'displayModeBar': False})
+                    st.plotly_chart(fig, config=config, use_container_width=True)
+
+                    if study_buttons:
+                        st.button(f'Study: {image["study_id"]}', on_click=save_selected_study_id, args=(image["study_id"], ), key=f"button_{image_index}")
+
+                    if image_description:
+                        st.write(f'Image id: {image["id"]}')
+
 
 def ceil_with_decimals(a, decimals=0):
     return np.true_divide(np.ceil(a * 10**decimals), 10**decimals)
 
+
 def floor_with_decimals(a, decimals=0):
     return np.true_divide(np.floor(a * 10**decimals), 10**decimals)
 
-if True:
-    hide_streamlit_style = """
-                <style>
-                #MainMenu {visibility: hidden;}
-                footer {visibility: hidden;}
-                </style>
-                """
-    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+hide_streamlit_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # Remove whitespace from the top of the page and sidebar
 st.markdown("""
@@ -286,57 +339,48 @@ if len(report_dataframe) > 0:
 
         if n_selected_images > 0:
 
-            col1, col2 = st.columns([9, 1])
+            show_study = False
+            for key in st.session_state:
+                if key[0:6] == "button":
+                    if st.session_state[key]:
+                        show_study = True
 
-            with col2:
+            col1, col2, col3 = st.columns([8, 1, 1])
+
+            with col3:
                 n_pages = -(-n_selected_images // n_images_per_page)
-                page_number = st.number_input("Page: ", 1, n_pages, 1, label_visibility="collapsed")
+                page_number = st.number_input("Page: ", 1, n_pages, 1, label_visibility="collapsed", disabled=show_study)
 
-            # Get current page of the selected images
-            first_image_idx = (page_number - 1) * n_images_per_page
-            last_image_idx = min(max(0, first_image_idx + n_images_per_page - 1), n_selected_images - 1)
-            get_images_input = {
-                "first_image_idx": first_image_idx,
-                "last_image_idx": last_image_idx
-            }
-            get_images_result = requests.post(url="http://localhost:8000/get_images", data=json.dumps(get_images_input))
-            images = get_images_result.json()
+            if show_study:
+                with col1:
+                    st.write(f'Showing all images of study with id: {st.session_state["selected_study_id"]}')
 
-            with col1:
-                st.write(f"Showing image {first_image_idx + 1} to {last_image_idx + 1} of {n_selected_images} images with at least {min_image_tp} TP, {min_image_fn} FN and {min_image_fp} FP:")
+                with col2:
+                    st.button("Back to page")
 
-            n_images = len(images)
-            n_columns = 4
-            n_rows = -(-n_images // n_columns)
-            for row_index in range(n_rows):
-                columns = st.columns(n_columns)
-                for column_index, column in enumerate(columns):
-                    image_index = column_index + n_columns * row_index
-                    if image_index < len(images):
-                        image = images[image_index]
-                        with column:
-                            im = io.imread(image["filename"])
-                            if len(im.shape) < 3:
-                                im = np.repeat(im[:, :, np.newaxis], 3, axis=2)
+                get_study_input = {
+                    "id": st.session_state["selected_study_id"]
+                }
+                get_study_result = requests.post(url="http://localhost:8000/get_study", data=json.dumps(get_study_input))
+                study = get_study_result.json()
 
-                            fig = px.imshow(im)
-                            fig.update_layout(
-                                margin=dict(l=0, r=0, t=0, b=0),
-                                hovermode=False,
-                                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),  # , fixedrange=False
-                                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                            )
+                plot_images_in_grid(study["images"], image_description=True)
+            else:
 
-                            gt_line = line=dict(color="green", width=2)
-                            pred_line = line=dict(color="orange", width=2)
-                            ground_truth_shapes = [{"type": "rect", "x0": gt["x1"], "y0": gt["y1"], "x1": gt["x2"], "y1": gt["y2"], "line": gt_line} for gt in image["ground_truths"]]
-                            prediction_shapes = [{"type": "rect", "x0": gt["x1"], "y0": gt["y1"], "x1": gt["x2"], "y1": gt["y2"], "line": pred_line} for gt in image["predictions"]]
-                            shapes = ground_truth_shapes + prediction_shapes
-                            if len(shapes) > 0:
-                                fig.update_layout(shapes=shapes)
+                # Get current page of the selected images
+                first_image_idx = (page_number - 1) * n_images_per_page
+                last_image_idx = min(max(0, first_image_idx + n_images_per_page - 1), n_selected_images - 1)
+                get_images_input = {
+                    "first_image_idx": first_image_idx,
+                    "last_image_idx": last_image_idx
+                }
+                get_images_result = requests.post(url="http://localhost:8000/get_images", data=json.dumps(get_images_input))
+                images = get_images_result.json()
 
-                            config = dict({'scrollZoom': True, 'displayModeBar': False})
-                            st.plotly_chart(fig, config=config, use_container_width=True)
+                with col1:
+                    st.write(f"Showing image {first_image_idx + 1} to {last_image_idx + 1} of {n_selected_images} images with at least {min_image_tp} TP, {min_image_fn} FN and {min_image_fp} FP:")
+
+                plot_images_in_grid(images, study_buttons=True)
         else:
             st.write("No matching data, lower min number of TP, FN or FP")
     else:

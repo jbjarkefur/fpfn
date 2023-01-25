@@ -172,7 +172,7 @@ def _filter_studies_and_images(studies: List[Study], study_boolean_expression: s
     studies_filtered = []
     for study in studies:
         if eval(study_boolean_expression):
-            study_filtered = Study(metadata=study.metadata, classification=study.classification)
+            study_filtered = Study(id=study.id, metadata=study.metadata, classification=study.classification)
             for image in study.images:
                 if eval(image_boolean_expression):
                     study_filtered.images.append(image)

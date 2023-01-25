@@ -41,6 +41,10 @@ class Get_images_user_input(BaseModel):
     last_image_idx: int = 7
 
 
+class Get_study_with_id_input(BaseModel):
+    id: int
+
+
 app = FastAPI()
 dataset = generate_test_dataset(5000)
 description = describe(dataset)
@@ -189,3 +193,10 @@ def select_images(input:Select_images_user_input):
 @app.post("/get_images")
 def get_images(input:Get_images_user_input):
     return selected_images[input.first_image_idx:input.last_image_idx + 1]
+
+
+@app.post("/get_study")
+def get_study(input:Get_study_with_id_input):
+    for study in dataset_thresholded.studies:
+        if study.id == input.id:
+            return study

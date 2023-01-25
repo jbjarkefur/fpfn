@@ -48,6 +48,8 @@ class Classification(Enum):
 
 @dataclass
 class Image():
+    id: int
+    study_id: int
     width: int
     height: int
     filename: str = None
@@ -65,6 +67,7 @@ class Image():
 
 @dataclass
 class Study():
+    id: int
     images: List[Image] = field(default_factory=list)
     metadata: dict = field(default_factory=dict)
     classification: Classification = None

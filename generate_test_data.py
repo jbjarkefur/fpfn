@@ -50,9 +50,10 @@ def generate_test_dataset(n_studies: int = 100) -> StudyDataset:
     }
 
     studies = []
-    for _ in range(n_studies):
+    current_image_id = 0
+    for study_id in range(n_studies):
         # Create a new study
-        study = Study()
+        study = Study(id=study_id)
 
         # Set some random study metadata
         study.metadata["country"] = random.choices(
@@ -66,11 +67,14 @@ def generate_test_dataset(n_studies: int = 100) -> StudyDataset:
         for _ in range(n_images):
 
             # Create a new image
+            image_id = current_image_id
+            current_image_id += 1
+
             filename = random.choices(list(image_descriptions.keys()))[0]
 
             image_width = image_descriptions[filename]["width"]
             image_height = image_descriptions[filename]["height"]
-            image = Image(image_width, image_height)
+            image = Image(image_id, study_id, image_width, image_height)
 
             image.filename = filename
 
