@@ -1,10 +1,11 @@
-from typing import List
-import numpy as np
 from copy import deepcopy
+from typing import List
 
-from data import StudyDataset, Image, GroundTruth, Prediction
+import numpy as np
+
+from data import GroundTruth, Image, Prediction, StudyDataset, Study
 from generate_test_data import generate_test_dataset
-from report import report
+from report import filter_dataset, report
 
 
 def filter_predictions_using_threshold(dataset: StudyDataset, threshold: float) -> StudyDataset:
@@ -51,9 +52,7 @@ def _calculate_iou(ground_truth: GroundTruth, prediction: Prediction) -> float:
 
 def match_and_classify(dataset: StudyDataset, min_iou: float = 0.0) -> StudyDataset:
     dataset_matched_and_classified = deepcopy(dataset)
-    dataset_matched_and_classified.n_tp = 0
-    dataset_matched_and_classified.n_fn = 0
-    dataset_matched_and_classified.n_fp = 0
+
     for study in dataset_matched_and_classified.studies:
         for image in study.images:
             image.n_tp, image.n_fn, image.n_fp = 0, 0, 0
@@ -101,28 +100,32 @@ def match_and_classify(dataset: StudyDataset, min_iou: float = 0.0) -> StudyData
 
 
 if __name__ == "__main__":
-    if False:
-        # 2 predictions on 1 ground truth -> 1 TP, 0 FN, 1 FP
-        dataset = Dataset([Image(900, 900, [GroundTruth(50, 60, 150, 160)], [
-                        Prediction(140, 150, 300, 310), Prediction(10, 20, 60, 70)])])
-        dataset_matched_and_classified = match_and_classify(dataset)
-        report(dataset_matched_and_classified)
+    # 2 predictions on 1 ground truth -> 1 TP, 0 FN, 1 FP
+    ground_truths = [GroundTruth(50, 60, 150, 160)]
+    predictions = [Prediction(140, 150, 300, 310, 0.5), Prediction(10, 20, 60, 70, 0.5)]
+    dataset = StudyDataset(studies=[Study(id=0, images=[Image(id=0, study_id=0, width=900, height=900, filename="test.jpg", ground_truths=ground_truths, predictions=predictions)])])
+    dataset_matched_and_classified = match_and_classify(dataset)
+    print(report(dataset_matched_and_classified))
 
-        # 1 prediction on 2 ground truth -> 2 TP, 0 FN, 0 FP
-        dataset = Dataset([Image(950, 950, [GroundTruth(50, 60, 150, 160), GroundTruth(
-            60, 70, 160, 170)], [Prediction(140, 150, 300, 310)])])
-        dataset_matched_and_classified = match_and_classify(dataset)
-        report(dataset_matched_and_classified)
+    # 1 prediction on 2 ground truth -> 2 TP, 0 FN, 0 FP
+    ground_truths = [GroundTruth(50, 60, 150, 160), GroundTruth(60, 70, 160, 170)]
+    predictions = [Prediction(140, 150, 300, 310, 0.5)]
+    dataset = StudyDataset(studies=[Study(id=0, images=[Image(id=0, study_id=0, width=950, height=950, filename="test.jpg", ground_truths=ground_truths, predictions=predictions)])])
+    dataset_matched_and_classified = match_and_classify(dataset)
+    print(report(dataset_matched_and_classified))
 
-        # 1 prediction on 2 ground truth, 1 prediction not overlapping anything, 1 ground truth not detected -> 2 TP, 1 FN, 1 FP
-        dataset = Dataset([Image(1000, 1000, [GroundTruth(50, 60, 150, 160), GroundTruth(60, 70, 160, 170), GroundTruth(
-            10, 20, 100, 110)], [Prediction(140, 150, 300, 310), Prediction(161, 171, 300, 310)])])
-        dataset_matched_and_classified = match_and_classify(dataset)
-        report(dataset_matched_and_classified)
+    # 1 prediction on 2 ground truth, 1 prediction not overlapping anything, 1 ground truth not detected -> 2 TP, 1 FN, 1 FP
+    ground_truths = [GroundTruth(50, 60, 150, 160), GroundTruth(60, 70, 160, 170), GroundTruth(10, 20, 100, 110)]
+    predictions = [Prediction(140, 150, 300, 310, 0.5), Prediction(161, 171, 300, 310, 0.5)]
+    dataset = StudyDataset(studies=[Study(id=0, images=[Image(id=0, study_id=0, width=1000, height=1000, filename="test.jpg", ground_truths=ground_truths, predictions=predictions)])])
+    dataset_matched_and_classified = match_and_classify(dataset)
+    print(report(dataset_matched_and_classified))
 
     # Larger amount of data
-    dataset = generate_test_dataset(100)
+    dataset = generate_test_dataset(n_studies=100)
     dataset_filtered = filter_predictions_using_threshold(dataset, threshold=0.2)
     dataset_matched_and_classified = match_and_classify(dataset_filtered, min_iou=0.2)
-    report_output = report(dataset_matched_and_classified, 'study.metadata["age"] >= 50', 'image.metadata["bodypart"] in ["Knee", "Hand"] and image.metadata["view"] == "PA/AP"')
-    print(report_output)
+    dataset_filtered = filter_dataset(dataset_matched_and_classified,
+                                      study_boolean_expression='study.metadata["age"] is not None and study.metadata["age"] >= 50',
+                                      image_boolean_expression='image.metadata["bodypart"] in ["Knee", "Hand"] and image.metadata["view"] == "PA/AP"')
+    print(report(dataset_filtered))

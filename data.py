@@ -1,6 +1,6 @@
-from typing import List
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import List
 
 
 @dataclass
@@ -28,15 +28,21 @@ class GroundTruth(BoundingBox):
     def from_parent(cls, bounding_box):
         return cls(x1=bounding_box.x1, y1=bounding_box.y1, x2=bounding_box.x2, y2=bounding_box.y2)
 
+    def __repr__(self):
+        return f"\nGround truth x1: {self.x1}, y1: {self.y1}, x2: {self.x2}, y2: {self.y2}, width: {self.width()}, height: {self.height()}, area: {self.area()}"
+
 
 @dataclass
 class Prediction(BoundingBox):
+    score: float
     fp: bool = None
-    score: float = 0
 
     @classmethod
     def from_parent(cls, bounding_box, score):
         return cls(x1=bounding_box.x1, y1=bounding_box.y1, x2=bounding_box.x2, y2=bounding_box.y2, score=score)
+
+    def __repr__(self):
+        return f"\nPrediction x1: {self.x1}, y1: {self.y1}, x2: {self.x2}, y2: {self.y2}, width: {self.width()}, height: {self.height()}, area: {self.area()}, score: {self.score}"
 
 
 class Classification(Enum):
@@ -48,11 +54,11 @@ class Classification(Enum):
 
 @dataclass
 class Image():
-    id: int
-    study_id: int
+    id: int | str
+    study_id: int | str | None
     width: int
     height: int
-    filename: str = None
+    filename: str
     ground_truths: List[GroundTruth] = field(default_factory=list)
     predictions: List[Prediction] = field(default_factory=list)
     metadata: dict = field(default_factory=dict)
@@ -64,10 +70,24 @@ class Image():
     def area(self) -> float:
         return self.width * self.height
 
+    def __repr__(self):
+        image_text = f"\n\nImage id: {self.id}, Study id: {self.study_id}\nWidth: {self.width}, Height: {self.height}"
+        metadata_text = ""
+        for key, value in self.metadata.items():
+            metadata_text += f"\n{key}: {value}"
+        ground_truths_text = ""
+        for ground_truth in self.ground_truths:
+            ground_truths_text += ground_truth.__repr__()
+        predictions_text = ""
+        for prediction in self.predictions:
+            predictions_text += prediction.__repr__()
+
+        return image_text + metadata_text + ground_truths_text + predictions_text
+
 
 @dataclass
 class Study():
-    id: int
+    id: int | str
     images: List[Image] = field(default_factory=list)
     metadata: dict = field(default_factory=dict)
     classification: Classification = None
@@ -75,11 +95,47 @@ class Study():
     def __len__(self):
         return len(self.images)
 
+    def __repr__(self):
+        study_text = f"\n\nStudy id: {self.id}\nNumber of images: {len(self.images)}"
+        metadata_text = ""
+        for key, value in self.metadata.items():
+            metadata_text += f"\n{key}: {value}"
+        images_text = ""
+        for image in self.images:
+            images_text += image.__repr__()
+
+        return study_text + metadata_text + images_text
+
+
+@dataclass
+class Dataset():
+    images: List[Image] = field(default_factory=list)
+    name: str = "A Dataset"
+
+    def __len__(self):
+        return len(self.images)
+
+    def __repr__(self):
+        dataset_text = f"Dataset name: '{self.name}'.\nNumber of images: {len(self.images)}"
+        images_text = ""
+        for image in self.images:
+            images_text += image.__repr__()
+
+        return dataset_text + images_text
+
 
 @dataclass
 class StudyDataset():
     studies: List[Study] = field(default_factory=list)
-    name: str = "Fracture Dataset"
+    name: str = "A StudyDataset"
 
     def __len__(self):
         return len(self.studies)
+
+    def __repr__(self):
+        dataset_text = f"StudyDataset name: '{self.name}'.\nNumber of studies: {len(self.studies)}"
+        studies_text = ""
+        for study in self.studies:
+            studies_text += study.__repr__()
+
+        return dataset_text + studies_text

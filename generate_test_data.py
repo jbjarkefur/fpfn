@@ -1,6 +1,7 @@
-from typing import List
-from data import StudyDataset, Study, Image, BoundingBox, GroundTruth, Prediction
 import random
+
+from data import (BoundingBox, GroundTruth, Image, Prediction, Study,
+                  StudyDataset)
 
 
 def _generate_random_bounding_box(image_width, image_height) -> BoundingBox:
@@ -26,14 +27,12 @@ def _generate_random_prediction(image_width, image_height) -> Prediction:
 def _generate_random_matching_prediction(image_width, image_height, ground_truth) -> Prediction:
     width = random.uniform(0.95, 1.05) * ground_truth.width()
     height = random.uniform(0.95, 1.05) * ground_truth.height()
-    x1 = min(ground_truth.x1 + random.uniform(-0.05, 0.05)
-             * width, image_width - width)
-    y1 = min(ground_truth.y1 + random.uniform(-0.05, 0.05)
-             * height, image_height - height)
+    x1 = min(ground_truth.x1 + random.uniform(-0.05, 0.05) * width, image_width - width)
+    y1 = min(ground_truth.y1 + random.uniform(-0.05, 0.05) * height, image_height - height)
     x2 = x1 + width
     y2 = y1 + height
     score = random.uniform(0, 1)
-    return Prediction(x1, y1, x2, y2, score=score)
+    return Prediction(x1, y1, x2, y2, score)
 
 
 def generate_test_dataset(n_studies: int = 100) -> StudyDataset:
@@ -57,10 +56,10 @@ def generate_test_dataset(n_studies: int = 100) -> StudyDataset:
 
         # Set some random study metadata
         study.metadata["country"] = random.choices(
-            ["US", "France", "Germany", "UK", "Sweden", "Denmark", "Spain"], [0.25, 0.2, 0.1, 0.2, 0.1, 0.1, 0.05])[0]
+            ["US", "France", "Germany", "UK", "Sweden", "Denmark", "Spain", None], [0.25, 0.2, 0.1, 0.2, 0.1, 0.05, 0.05, 0.05])[0]
         study.metadata["gender"] = random.choices(
-            ["Male", "Female"], [0.7, 0.3])[0]
-        study.metadata["age"] = random.randint(0, 100)
+            ["Male", "Female", None], [0.5, 0.3, 0.2])[0]
+        study.metadata["age"] = None if random.uniform(0, 1) > 0.9 else random.randint(0, 100)
 
         # Add 2-5 images to the study
         n_images = random.randint(2, 5)
@@ -74,18 +73,16 @@ def generate_test_dataset(n_studies: int = 100) -> StudyDataset:
 
             image_width = image_descriptions[filename]["width"]
             image_height = image_descriptions[filename]["height"]
-            image = Image(image_id, study_id, image_width, image_height)
-
-            image.filename = filename
+            image = Image(image_id, study_id, image_width, image_height, filename)
 
             # Set some random image metadata
             image.metadata["bodypart"] = random.choices(
-                ["Knee", "Hand", "Foot", "Shoulder", "Elbow", "Hip", "Forearm"], [0.2, 0.1, 0.2, 0.2, 0.15, 0.1, 0.05])[0]
+                ["Knee", "Hand", "Foot", "Shoulder", "Elbow", "Hip", "Forearm", None], [0.2, 0.1, 0.2, 0.2, 0.15, 0.05, 0.05, 0.05])[0]
             image.metadata["view"] = random.choices(
-                ["Lateral", "PA/AP", "Oblique"], [0.2, 0.4, 0.2])[0]
+                ["Lateral", "PA/AP", "Oblique", None], [0.3, 0.4, 0.2, 0.1])[0]
             image.metadata["machine"] = random.choices(
                 ["GE", "Fujifilm", "Siemens"], [0.1, 0.1, 0.8])[0]
-            image.metadata["sharpness"] = random.uniform(0, 10)
+            image.metadata["sharpness"] = None if random.uniform(0, 1) > 0.95 else random.uniform(0, 10)
 
             # Add some random FPs
             n_fps = random.choices(
@@ -115,6 +112,4 @@ def generate_test_dataset(n_studies: int = 100) -> StudyDataset:
 
 
 if __name__ == "__main__":
-    # Generate 100 images where around half have ground truth (1-5) and where around 80% of the ground truths have a prediction
-    studies = generate_test_dataset()
-    a = 1
+    studies = generate_test_dataset(n_studies=100)

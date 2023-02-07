@@ -1,11 +1,12 @@
-import streamlit as st
 import json
-import requests
-import pandas as pd
-from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder
+
 import numpy as np
+import pandas as pd
 import plotly.express as px
+import requests
+import streamlit as st
 from skimage import io
+from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder
 
 
 st.set_page_config(layout="wide")
@@ -26,7 +27,6 @@ def save_selected_study_id(selected_study_id):
 def plot_images_in_grid(images, n_columns=4, study_buttons=False, image_description=False):
     n_images = len(images)
     n_rows = -(-n_images // n_columns)
-    buttons = []
     for row_index in range(n_rows):
         columns = st.columns(n_columns)
         for column_index, column in enumerate(columns):
@@ -97,7 +97,33 @@ with st.sidebar:
     with st.expander("Matching parameters"):
         min_iou = st.slider("min_iou", 0.0, 1.0, 0.2)
         threshold = st.slider("threshold", 0.0, 1.0, 0.5)
-    
+
+    def _extend_boolean_expression_from_input(
+            metadata_boolean_expression,
+            level, key,
+            selected_min_value, selected_max_value,
+            min_value, max_value, include_null):
+        value_expression = ""
+        if selected_min_value > min_value and selected_max_value < max_value:
+            value_expression = f"({level}.metadata['{key}'] >= {selected_min_value} and {level}.metadata['{key}'] <= {selected_max_value})"
+        elif selected_min_value > min_value:
+            value_expression = f"{level}.metadata['{key}'] >= {selected_min_value}"
+        elif selected_max_value < max_value:
+            value_expression = f"{level}.metadata['{key}'] <= {selected_max_value}"
+        if value_expression != "":
+            if metadata_boolean_expression != "":
+                metadata_boolean_expression += " and "
+            if include_null:
+                metadata_boolean_expression += f"({level}.metadata['{key}'] is None or {value_expression})"
+            else:
+                metadata_boolean_expression += f"{level}.metadata['{key}'] is not None and {value_expression}"
+        elif not include_null:
+            if metadata_boolean_expression != "":
+                metadata_boolean_expression += " and "
+            metadata_boolean_expression += f"{level}.metadata['{key}'] is not None"
+
+        return metadata_boolean_expression
+
     def filtering(level: str, metadata_description: dict) -> str:
         metadata_boolean_expression = ""
         for key, values in metadata_description[level]["str"].items():
@@ -114,14 +140,11 @@ with st.sidebar:
                 selected_min_value = st.number_input(f"Min {key}", min_value, max_value, min_value, step=1)
             with col2:
                 selected_max_value = st.number_input(f"Max {key}", min_value, max_value, max_value, step=1)
-            if selected_min_value > min_value:
-                if len(metadata_boolean_expression) > 0:
-                    metadata_boolean_expression += " and "
-                metadata_boolean_expression += f"{level}.metadata['{key}'] >= {selected_min_value}"
-            if selected_max_value < max_value:
-                if len(metadata_boolean_expression) > 0:
-                    metadata_boolean_expression += " and "
-                metadata_boolean_expression += f"{level}.metadata['{key}'] <= {selected_max_value}"
+            include_null = st.checkbox(f"Include unknown {key}", value=True if selected_min_value == min_value and selected_max_value == max_value else False)
+            metadata_boolean_expression = _extend_boolean_expression_from_input(
+                metadata_boolean_expression, level, key,
+                selected_min_value, selected_max_value,
+                min_value, max_value, include_null)
         for key, values in metadata_description[level]["float"].items():
             col1, col2 = st.columns(2)
             min_value = floor_with_decimals(values["min_value"], 2)
@@ -130,14 +153,11 @@ with st.sidebar:
                 selected_min_value = st.number_input(f"Min {key}", min_value, max_value, min_value, step=0.01)
             with col2:
                 selected_max_value = st.number_input(f"Max {key}", min_value, max_value, max_value, step=0.01)
-            if selected_min_value > min_value:
-                if len(metadata_boolean_expression) > 0:
-                    metadata_boolean_expression += " and "
-                metadata_boolean_expression += f"{level}.metadata['{key}'] >= {selected_min_value}"
-            if selected_max_value < max_value:
-                if len(metadata_boolean_expression) > 0:
-                    metadata_boolean_expression += " and "
-                metadata_boolean_expression += f"{level}.metadata['{key}'] <= {selected_max_value}"
+            include_null = st.checkbox(f"Include unknown {key}", value=True if selected_min_value == min_value and selected_max_value == max_value else False)
+            metadata_boolean_expression = _extend_boolean_expression_from_input(
+                metadata_boolean_expression, level, key,
+                selected_min_value, selected_max_value,
+                min_value, max_value, include_null)
         if metadata_boolean_expression == "":
             metadata_boolean_expression = "True"
         return metadata_boolean_expression
@@ -151,9 +171,6 @@ with st.sidebar:
 
     with st.expander("Image filters"):
         image_boolean_expression = filtering("image", describe_metadata_data)
-
-    with st.expander("GT box filters"):
-        st.write("Placeholder")
 
     st.header("Dimensions")
     available_study_str_dimensions = ["Study " + dimension for dimension in describe_metadata_data["study"]["str"].keys()]
@@ -286,8 +303,7 @@ if selected_dimension_2 and (selected_dimension_1 != selected_dimension_2):
         create_report_input["dimension_2_values"] = [float(value) for value in describe_metadata_data[selected_dimension_2_level]["float"][selected_dimension_2_name]["selected_edges"].split(', ')]
 
 filter_text = f"**Study filter:** {'None' if study_boolean_expression == 'True' else study_boolean_expression}" + ", " \
-    f"**Image filter:** {'None' if image_boolean_expression == 'True' else image_boolean_expression}" + ", " \
-    f"**GT box filter:** None"
+    f"**Image filter:** {'None' if image_boolean_expression == 'True' else image_boolean_expression}"
 st.write(filter_text)
 
 report_result = requests.post(url="http://localhost:8000/create_report", data=json.dumps(create_report_input))

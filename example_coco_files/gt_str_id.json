@@ -1,0 +1,143 @@
+{
+    "info": {
+        "year": 2023,
+        "version": 1,
+        "description": "Minimal COCO dataset for testing",
+        "contributor": "",
+        "url": "",
+        "date_captured": "2023-01-26 13:09:09"
+    },
+    "images": [
+        {
+            "id": "im_0",
+            "license": 0,
+            "file_name": "test_data_images/hand_1.jpg",
+            "height": 500,
+            "width": 1000,
+            "date_captured": "2023-01-26 15:05:05",
+            "my_custom_study_id": "st_1",
+            "patient_age": 55,
+            "patient_gender": "Male",
+            "image_sharpness": null
+        },
+        {
+            "id": "im_1",
+            "license": 0,
+            "file_name": "test_data_images/foot_1.jpg",
+            "height": 600,
+            "width": 1100,
+            "date_captured": "2023-01-26 15:09:06",
+            "my_custom_study_id": "st_1",
+            "patient_age": 55,
+            "patient_gender": "Male",
+            "image_sharpness": 3.5
+        },
+        {
+            "id": "im_2",
+            "license": 0,
+            "file_name": "test_data_images/knee_1.jpg",
+            "height": 700,
+            "width": 1200,
+            "date_captured": "2023-01-23 14:05:01",
+            "my_custom_study_id": "st_0",
+            "patient_age": null,
+            "patient_gender": "Female",
+            "image_sharpness": 1.9
+        },
+        {
+            "id": "im_3",
+            "license": 0,
+            "file_name": "test_data_images/wrist_1.jpg",
+            "height": 800,
+            "width": 400,
+            "date_captured": "2023-01-23 14:06:35",
+            "my_custom_study_id": "st_0",
+            "patient_age": null,
+            "patient_gender": "Female",
+            "image_sharpness": 9.4
+        },
+        {
+            "id": "im_4",
+            "license": 0,
+            "file_name": "test_data_images/knee_2.jpg",
+            "height": 700,
+            "width": 1200,
+            "date_captured": "2023-01-23 15:05:01",
+            "my_custom_study_id": "st_2",
+            "patient_age": 25,
+            "patient_gender": "Female",
+            "image_sharpness": 4.9
+        },
+        {
+            "id": "im_5",
+            "license": 0,
+            "file_name": "test_data_images/arm_1.jpg",
+            "height": 800,
+            "width": 400,
+            "date_captured": "2023-01-23 15:06:35",
+            "my_custom_study_id": "st_2",
+            "patient_age": 25,
+            "patient_gender": "Female",
+            "image_sharpness": 6.4
+        },
+        {
+            "id": "im_6",
+            "license": 0,
+            "file_name": "test_data_images/knee_2.jpg",
+            "height": 700,
+            "width": 1200,
+            "date_captured": "2023-01-23 15:05:01",
+            "my_custom_study_id": "st_3",
+            "patient_age": null,
+            "patient_gender": null,
+            "image_sharpness": 3.9
+        },
+        {
+            "id": "im_7",
+            "license": 0,
+            "file_name": "test_data_images/arm_1.jpg",
+            "height": 800,
+            "width": 400,
+            "date_captured": "2023-01-23 15:06:35",
+            "my_custom_study_id": "st_3",
+            "patient_age": null,
+            "patient_gender": null,
+            "image_sharpness": 9.8
+        }
+    ],
+    "annotations": [
+        {
+            "id": 0,
+            "image_id": 2,
+            "area": 5624.0,
+            "bbox": [50.1,60.2,70.3,80.0],
+            "iscrowd": 0,
+            "my_object_id": 5
+        },
+        {
+            "id": 1,
+            "image_id": 2,
+            "area": 1212.0,
+            "bbox": [10.1,20.2,30.3,40.0],
+            "iscrowd": 0,
+            "my_object_id": 4
+        },
+        {
+            "id": 2,
+            "image_id": 3,
+            "area": 5775.3,
+            "bbox": [51.1,61.2,71.3,81.0],
+            "iscrowd": 0,
+            "my_object_id": 5
+        },
+        {
+            "id": 3,
+            "image_id": 1,
+            "area": 4352.3,
+            "bbox": [41.1,51.2,61.3,71.0],
+            "iscrowd": 0,
+            "my_object_id": 3
+        }
+    ],
+    "licenses": []
+}

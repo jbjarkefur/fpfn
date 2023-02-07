@@ -1,7 +1,9 @@
-from typing import List
-from data import StudyDataset, Study
-import pandas as pd
 from multiprocessing import Pool
+from typing import List
+
+import pandas as pd
+
+from data import Study, StudyDataset
 
 
 def get_metrics() -> List[str]:
@@ -20,9 +22,10 @@ def get_metrics() -> List[str]:
     ]
 
 
-def _report(studies: List[Study],
-    dimension_1_name: str = None, dimension_1_level: str = None, dimension_1_value: str = None,
-    dimension_2_name: str = None, dimension_2_level: str = None, dimension_2_value: str = None):
+def _report(
+        studies: List[Study],
+        dimension_1_name: str = None, dimension_1_level: str = None, dimension_1_value: str = None,
+        dimension_2_name: str = None, dimension_2_level: str = None, dimension_2_value: str = None):
 
     n_images, n_pos_images = 0, 0
     n_studies, n_pos_studies = 0, 0
@@ -46,20 +49,19 @@ def _report(studies: List[Study],
 
     if n_images > 0:
         # Calculate KPIs
-        if (n_tp + n_fn) > 0:
+        if n_tp > 0:
             tp_rate = 100 * (n_tp / (n_tp + n_fn))
-            fps_per_image = n_fp / n_images
         else:
-            tp_rate = -1
-            fps_per_image = -1
+            tp_rate = 0.0
+        fps_per_image = n_fp / n_images
 
         # Write a report
         report = pd.DataFrame({
-            "tp_rate": [tp_rate],
-            "fps_per_image": [fps_per_image],
-            "n_tp" : [float(n_tp)],
-            "n_fn" : [float(n_fn)],
-            "n_fp" : [float(n_fp)],
+            "tp_rate": [float(tp_rate)],
+            "fps_per_image": [float(fps_per_image)],
+            "n_tp": [float(n_tp)],
+            "n_fn": [float(n_fn)],
+            "n_fp": [float(n_fp)],
             "n_images": [float(n_images)],
             "n_pos_images": [float(n_pos_images)],
             "n_neg_images": [float(n_neg_images)],
@@ -68,12 +70,12 @@ def _report(studies: List[Study],
             "n_neg_studies": [float(n_neg_studies)]
         })
         if dimension_2_name is not None:
-            report.insert(loc=0, column=dimension_2_level.capitalize() + " " + dimension_2_name, value=[dimension_2_value])
+            report.insert(loc=0, column=dimension_2_level.capitalize() + " " + dimension_2_name, value=["Unknown" if dimension_2_value is None else dimension_2_value])
         if (dimension_1_name is not None) and (dimension_1_name != dimension_2_name):
-            report.insert(loc=0, column=dimension_1_level.capitalize() + " " + dimension_1_name, value=[dimension_1_value])
+            report.insert(loc=0, column=dimension_1_level.capitalize() + " " + dimension_1_name, value=["Unknown" if dimension_1_value is None else dimension_1_value])
     else:
         report = None
-    
+
     return report
 
 
@@ -83,12 +85,13 @@ def _report_row(arguments):
     if dimension_1_name is None and dimension_2_name is None:
         pass
     else:
-        studies = filter_studies_and_images_based_on_level(studies,
+        studies = filter_studies_and_images_based_on_level(
+            studies,
             dimension_1_name, dimension_1_level, dimension_1_value,
-            dimension_2_name, dimension_2_level, dimension_2_value
-        )
+            dimension_2_name, dimension_2_level, dimension_2_value)
 
-    report = _report(studies,
+    report = _report(
+        studies,
         dimension_1_name, dimension_1_level, dimension_1_value,
         dimension_2_name, dimension_2_level, dimension_2_value)
 
@@ -100,20 +103,24 @@ def _get_bucket_names(edges) -> List[str]:
     for lower_edge, upper_edge in zip(edges[:-2], edges[1:-1]):
         bucket_names.append(f"[{lower_edge}, {upper_edge})")
     bucket_names.append(f"[{edges[-2]}, {edges[-1]}]")
+    bucket_names.append("Other")
     return bucket_names
 
 
 def _set_bucket(value, edges) -> str:
-    bucket = None
-    for lower_edge, upper_edge in zip(edges[:-2], edges[1:-1]):
-        if value >= lower_edge and value < upper_edge:
-            bucket = f"[{lower_edge}, {upper_edge})"
-            break
-    if bucket == None:
-        if value >= edges[-2] and value <= edges[-1]:
-            bucket = f"[{edges[-2]}, {edges[-1]}]"
-        else:
-            bucket = "Other"
+    if value is None:
+        bucket = None
+    else:
+        bucket = None
+        for lower_edge, upper_edge in zip(edges[:-2], edges[1:-1]):
+            if value >= lower_edge and value < upper_edge:
+                bucket = f"[{lower_edge}, {upper_edge})"
+                break
+        if bucket is None:
+            if value >= edges[-2] and value <= edges[-1]:
+                bucket = f"[{edges[-2]}, {edges[-1]}]"
+            else:
+                bucket = "Other"
     return bucket
 
 
@@ -132,30 +139,33 @@ def _add_buckets_for_numeric_dimension(studies, dimension_name, dimension_level,
     return dimension_name, dimension_values
 
 
-def filter_studies_and_images_based_on_level(studies: List[Study],
-    dimension_1_name: str = None, dimension_1_level: str = None, dimension_1_value: str = None,
-    dimension_2_name: str = None, dimension_2_level: str = None, dimension_2_value: str = None,
-    min_image_tp: int = 0, min_image_fn: int = 0, min_image_fp: int = 0) -> List[Study]:
+def filter_studies_and_images_based_on_level(
+        studies: List[Study],
+        dimension_1_name: str = None, dimension_1_level: str = None, dimension_1_value: str = None,
+        dimension_2_name: str = None, dimension_2_level: str = None, dimension_2_value: str = None,
+        min_image_tp: int = 0, min_image_fn: int = 0, min_image_fp: int = 0) -> List[Study]:
 
     study_boolean_expression = "True"
     image_boolean_expression = "True"
 
     if dimension_1_name is not None:
+        dimension_value = None if dimension_1_value is None else f"'{dimension_1_value}'"
         if dimension_1_level == "study":
-            study_boolean_expression += f" and study.metadata['{dimension_1_name}'] == '{dimension_1_value}'"
+            study_boolean_expression += f" and study.metadata['{dimension_1_name}'] == {dimension_value}"
         elif dimension_1_level == "image":
-            image_boolean_expression += f" and image.metadata['{dimension_1_name}'] == '{dimension_1_value}'"
+            image_boolean_expression += f" and image.metadata['{dimension_1_name}'] == {dimension_value}"
         else:
             raise ValueError(f"Unsupported dimension level {dimension_1_level}")
 
     if dimension_2_name is not None:
+        dimension_value = None if dimension_2_value is None else f"'{dimension_2_value}'"
         if dimension_2_level == "study":
-            study_boolean_expression += f" and study.metadata['{dimension_2_name}'] == '{dimension_2_value}'"
+            study_boolean_expression += f" and study.metadata['{dimension_2_name}'] == {dimension_value}"
         elif dimension_2_level == "image":
-            image_boolean_expression += f" and image.metadata['{dimension_2_name}'] == '{dimension_2_value}'"
+            image_boolean_expression += f" and image.metadata['{dimension_2_name}'] == {dimension_value}"
         else:
             raise ValueError(f"Unsupported dimension level {dimension_2_level}")
-    
+
     if min_image_tp > 0:
         image_boolean_expression += f" and image.n_tp >= {min_image_tp}"
     if min_image_fn > 0:
@@ -188,27 +198,33 @@ def _filter_studies_and_images(studies: List[Study], study_boolean_expression: s
 def filter_dataset(dataset: StudyDataset, study_boolean_expression: str = "True", image_boolean_expression: str = "True") -> StudyDataset:
 
     studies_filtered = _filter_studies_and_images(dataset.studies, study_boolean_expression, image_boolean_expression)
-    
+
     dataset_filtered = StudyDataset(studies=studies_filtered, name=dataset.name)
 
     return dataset_filtered
 
 
-def report(dataset: StudyDataset,
-    dimension_1_name: str = None, dimension_1_level: str = None, dimension_1_type: str = None, dimension_1_values: List = [None],
-    dimension_2_name: str = None, dimension_2_level: str = None, dimension_2_type: str = None, dimension_2_values: List = [None]):
+def report(
+        dataset: StudyDataset,
+        dimension_1_name: str = None, dimension_1_level: str = None, dimension_1_type: str = None, dimension_1_values: List = [None],
+        dimension_2_name: str = None, dimension_2_level: str = None, dimension_2_type: str = None, dimension_2_values: List = [None]):
 
     # Handle numeric dimensions
     # The buckets are stored on the persisted dataset for later use in other parts of the API
     dimension_1_name, dimension_1_values = _add_buckets_for_numeric_dimension(dataset.studies, dimension_1_name, dimension_1_level, dimension_1_type, dimension_1_values)
     dimension_2_name, dimension_2_values = _add_buckets_for_numeric_dimension(dataset.studies, dimension_2_name, dimension_2_level, dimension_2_type, dimension_2_values)
 
+    # Add None dimension values for null data
+    # New variables to avoid modifying user input variables
+    dimension_1_values_none = dimension_1_values if dimension_1_name is None else dimension_1_values + [None]
+    dimension_2_values_none = dimension_2_values if dimension_2_name is None else dimension_2_values + [None]
+
     if dimension_1_name is None and dimension_2_name is None:
         report = _report(dataset.studies)
     else:
         pool_arguments = []
-        for dimension_1_value in dimension_1_values:
-            for dimension_2_value in dimension_2_values:
+        for dimension_1_value in dimension_1_values_none:
+            for dimension_2_value in dimension_2_values_none:
                 pool_arguments.append(
                     (dataset.studies,
                      dimension_1_name, dimension_1_level, dimension_1_value,

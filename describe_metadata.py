@@ -4,7 +4,9 @@ from data import StudyDataset
 def _describe_metadata(description: dict, metadata: dict):
 
     for key, value in metadata.items():
-        if isinstance(value, str):
+        if value is None:
+            pass
+        elif isinstance(value, str):
             if key in description["str"]:
                 if value in description["str"][key]:
                     description["str"][key][value] += 1
