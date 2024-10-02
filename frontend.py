@@ -328,7 +328,7 @@ if len(report_dataframe) > 0:
     grid_options = options_builder.build()
     aggrid_result = AgGrid(report_dataframe, gridOptions=grid_options, columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
 
-    if len(aggrid_result.selected_rows) > 0:
+    if aggrid_result.selected_rows is not None and len(aggrid_result.selected_rows) > 0:
 
         # Select images
         select_images_input = {
@@ -336,7 +336,8 @@ if len(report_dataframe) > 0:
             "min_image_fn": min_image_fn,
             "min_image_fp": min_image_fp
         }
-        selected_row = aggrid_result.selected_rows[0]
+        selected_row = aggrid_result.selected_rows.iloc[0]
+
         if selected_dimension_1 is not None:
             selected_dimension_1_value = selected_row[selected_dimension_1]
             select_images_input["dimension_1_name"] = selected_dimension_1_name

@@ -10,3 +10,4 @@ dependencies:
   - matplotlib
   - plotly
   - scikit-image
+  - pandas

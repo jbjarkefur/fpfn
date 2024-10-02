@@ -2,7 +2,11 @@
 
 ## Overview
 
-FPFN.ai is a tool for getting performance insights of computer vision models. Our mission is to make it much easier and faster to improve computer vision models and to empower more people to help out with data science work.
+FPFN is a tool for getting performance insights of computer vision models. The goal is to make it much easier and faster to improve computer vision models and to empower more people to help out with data science work.
+
+![FPFN gui](FPFN_gui.png)
+
+The user can instantly filter the dataset and see performance for any slice of the dataset. Up to two dimensions can be used at once to compare performance between different slices (see picture above). When clicking on a row in the table, FPFN will show the associated images with ground truth and detection bounding boxes overlayed. It is then possible to filter for images with at least X FP, FN or TP respectively.
 
 ## Installing and starting the app
 
