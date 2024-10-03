@@ -8,11 +8,9 @@ FPFN is a tool for getting performance insights of computer vision models. The g
 
 The user can instantly filter the dataset and see performance for any slice of the dataset. Up to two dimensions can be used at once to compare performance between different slices (see picture above). When clicking on a row in the table, FPFN will show the associated images with ground truth and detection bounding boxes overlayed. It is then possible to filter for images with at least X FP, FN or TP respectively.
 
-## Starting the app
+## Starting the app with a mock fracture detection dataset (recommended for first tests)
 
-The installation instructions assume that you have conda installed (e.g. miniconda). You can install without conda by manually installing packages according to the contents of environment.yml
-
-Perform the following steps to start the web app using a mock fracture detection dataset (recommended for first tests):
+The instructions assume that you have conda installed (e.g. miniconda). You can install without conda by manually installing packages according to the contents of environment.yml
 
 1. Clone this repository
 2. `conda env create -f environment.yml`
@@ -22,7 +20,9 @@ Perform the following steps to start the web app using a mock fracture detection
 6. Open a new terminal, activate the fpfn_env environment there also and start the frontend: `streamlit run frontend.py`
 7. The first time the frontend is started it takes a few seconds until the GUI loads
 
-### Configure the app to use a custom COCO dataset
+## Starting the app with a custom COCO dataset
+
+Perform the following updates and then start the app using the instructions above (folder "test_data_images" not needed).
 
 - Open "api.py" and update the first lines of the file:
     1. Set the variable "load_custom_dataset" to True
