@@ -52,7 +52,7 @@ def plot_images_in_grid(images, n_columns=4, study_buttons=False, image_descript
                     if len(shapes) > 0:
                         fig.update_layout(shapes=shapes)
                     config = dict({'scrollZoom': True, 'displayModeBar': False})
-                    st.plotly_chart(fig, config=config, use_container_width=True)
+                    st.plotly_chart(fig, config=config, use_container_width=True, key=f"plot_{image_index}")
 
                     if study_buttons:
                         st.button(f'Study: {image["study_id"]}', on_click=save_selected_study_id, args=(image["study_id"], ), key=f"button_{image_index}")
